@@ -1,0 +1,9 @@
+{
+    "Query": "(pf16570 OR pf16569 OR pf16555) and (ipr042002)",
+    "Input_genomes": "Input_genomes",
+    "Email": "zhuzhengnong@xbiome.com",
+    "alignment_threshold": 50,
+    "alignment_len_threshold": 0.1,
+    "Antismash_gap_len": 20,
+    "Antismash_extenson_len": 8
+}
