@@ -36,7 +36,7 @@ from http import client
 from http.client import IncompleteRead
 import Bio
 import matplotlib.pyplot as plt
-
+import datetime
 
 
 ########### arguments ###########
@@ -223,195 +223,6 @@ def downloadGenome(dataframe, work_dir):
                     else:
                         next
 
-        # try:
-        #     handle = Entrez.efetch(db="taxonomy", id=str(tax_id))
-        #     result = Entrez.read(handle)
-        # except (ValidationError, RuntimeError, IncompleteRead, ConnectionResetError, timeout, CorruptedXMLError, HTTPError):
-        #         next
-
-        # level = result[0]['Rank']
-        # tax_name = result[0]['ScientificName']
-        # ## 移除unculture的物种
-        # if re.search('[uU]ncluture', tax_name):
-        #     next
-        # else:
-        #     pass
-        # ## Start ncbi parsing
-        # ## Get maximum retnum
-        # try:
-        #     tmp_handle = Entrez.esearch(db="assembly", term = tax_name, retmode="xml")
-        #     tmp_result = Entrez.read(tmp_handle)
-        #     max_record_num = tmp_result['Count']
-        #     tmp1_handle = Entrez.esearch(db="assembly", term = tax_name, retmode="xml", retmax=max_record_num)
-        #     tmp1_result = Entrez.read(tmp1_handle)
-        #     assmbly_id_list = tmp1_result['IdList']
-        #     print("\n")
-        #     print("物种/菌株" + tax_name + '在NCBI数据库中检索到如下Assembly ID：' + '，'.join(assmbly_id_list))
-        #     print("\n")
-        #     print("正在根据组装水平对物种/菌株" + tax_name + "对应的" + str(len(assmbly_id_list)) + "个Assembly ID进行过滤：")
-        #     print("\n")
-
-        #     filtered_assembly_id_list = []
-        #     ## Check if only one species/strain is found for tax_id
-        #     if len(assmbly_id_list) == 1:
-        #         assmbly_id = ''.join(assmbly_id_list)
-        #         assembly_id_handle = Entrez.esummary(db="assembly", id=assmbly_id, report="full")
-        #         try:
-        #             assembly_id_result = Entrez.read(assembly_id_handle)
-        #             ## Filter assembly IDs with AssemblyStatus, discard contig level assemblies
-        #             if (assembly_id_result['DocumentSummarySet']['DocumentSummary'][0]['AssemblyStatus'] == 'Chromosome') | (assembly_id_result['DocumentSummarySet']['DocumentSummary'][0]['AssemblyStatus'] == 'Complete Genome'):
-        #                 filtered_assembly_id_list.append(assmbly_id)
-        #             else:
-        #                 next
-        #         except (ValidationError, RuntimeError, IncompleteRead, ConnectionResetError, timeout, CorruptedXMLError, HTTPError):
-        #             next
-        #     else:
-        #         if len(assmbly_id_list) > 100:
-        #             for part in list(range(0,len(assmbly_id_list)+1,100)):
-        #                 partial_assmbly_id_list = assmbly_id_list[part:part+100]
-        #                 query_assmbly_id = ','.join(partial_assmbly_id_list)
-        #                 assembly_id_handle = Entrez.esummary(db="assembly", id=query_assmbly_id, report="full") 
-        #                 try:
-        #                     assembly_id_result = Entrez.read(assembly_id_handle)
-        #                     recoed_list = assembly_id_result['DocumentSummarySet']['DocumentSummary']
-        #                     for record in recoed_list:
-        #                         assmbly_id = record.attributes['uid']
-        #                         if (record['AssemblyStatus'] == 'Chromosome') | (record['AssemblyStatus'] == 'Complete Genome'):
-        #                             filtered_assembly_id_list.append(assmbly_id)
-        #                         else:
-        #                             next
-        #                 except (ValidationError, RuntimeError, IncompleteRead, ConnectionResetError, timeout, CorruptedXMLError, HTTPError):
-        #                     next
-        #         else:
-        #             query_assmbly_id = ','.join(assmbly_id_list)
-        #             assembly_id_handle = Entrez.esummary(db="assembly", id=query_assmbly_id, report="full") 
-        #             try:
-        #                 assembly_id_result = Entrez.read(assembly_id_handle)
-        #                 recoed_list = assembly_id_result['DocumentSummarySet']['DocumentSummary']
-        #                 for record in recoed_list:
-        #                     assmbly_id = record.attributes['uid']
-        #                     if (record['AssemblyStatus'] == 'Chromosome') | (record['AssemblyStatus'] == 'Complete Genome'):
-        #                         filtered_assembly_id_list.append(assmbly_id)
-        #                     else:
-        #                         next
-        #             except (ValidationError, RuntimeError, IncompleteRead, ConnectionResetError, timeout, CorruptedXMLError, HTTPError):
-        #                 next
-        # except (TimeoutError,RuntimeError,ValidationError,IncompleteRead, ConnectionResetError, timeout, CorruptedXMLError, HTTPError):
-        #     next
-        # print("物种/菌株" + tax_name + '过滤后剩余' + str(len(filtered_assembly_id_list)) + '个ID：' + '，'.join(filtered_assembly_id_list))
-        # print("\n")
-
-        # print("\n")
-        # print("正在下载物种/菌株" + tax_name + '过滤后的' + str(len(filtered_assembly_id_list)) + '个complete genomes: ')
-        # print("\n")
-
-        # filtered_assembly_id_list = list(set(filtered_assembly_id_list))
-        # if len(filtered_assembly_id_list) == 0:
-        #     next
-        # else:
-        #     ## 创建下载目录
-        #     os.system('mkdir -p ' + work_dir + '/Candidate_genomes/'+ str(tax_id) + '/')
-        #     for genome_id in filtered_assembly_id_list:
-        #     #如果基因组已经下载过则next
-        #         if genome_id in all_assembly_id_list:
-        #             next
-        #         else:
-        #             pass
-                    
-                # genome_handle = Entrez.esummary(db="assembly", id=genome_id, report="full")
-                # try:
-                #     genome_record = Entrez.read(genome_handle)
-                #     genome_result = genome_record['DocumentSummarySet']['DocumentSummary'][0]
-                #     assembly_accession = genome_result['AssemblyAccession']
-                #     assembly_ftp = genome_result['FtpPath_GenBank']
-                #     organism = genome_result['Organism']
-                #     ## 移除unculture的物种
-                #     if re.search('[uU]ncluture', organism):
-                #         next
-                #     else:
-                #         pass
-                #     try:
-                #         strain_info = genome_result['Biosource']['InfraspeciesList'][0]['Sub_value']
-                #     except IndexError:
-                #         strain_info = 'unknown'
-                #     strain_info = re.sub('[/\|\s:]', '_', strain_info)
-                #     assembly_name = re.sub('[/\|\s:]', '_', organism)
-                #     assembly_name = re.sub('\(.+\)', '', assembly_name)
-                #     assembly_name = assembly_name + '_strain_' + strain_info + '_' + assembly_accession
-                #     assembly_name = re.sub(';', '', assembly_name)
-                #     assembly_name = re.sub('__', '_', assembly_name)
-                #     assembly_name = re.sub(':', '_', assembly_name)
-
-                #     assembly_name = re.sub('\[', '', assembly_name)
-                #     assembly_name = re.sub('\]', '', assembly_name)
-                #     #如果该物种/strain基因组未下载过则存入所有下载过的基因组id
-                #     all_assembly_id_list.extend(genome_id)
-                #     ftp = ftplib.FTP('ftp.ncbi.nlm.nih.gov')
-                #     ## 当某些基因组没有ftp链接，直接舍弃
-                #     try:
-                #         ftp_dir = re.split('gov', assembly_ftp)[1]
-                #         ftp.login()
-                #         ftp.cwd(ftp_dir)
-                #         for x in ftp.nlst():
-                #             if re.search('[^from]_genomic.fna.gz',x):
-                #                 refseq = x
-                #             elif x.endswith('_genomic.gbff.gz'):
-                #                 gbk = x
-                #             else:
-                #                 next
-                #         ##下载genebank文件
-                #         gbk_flag = 0
-                #         data = BytesIO()
-                #         try:
-                #             ftp.retrbinary('RETR ' + gbk, data.write, 1024)
-                #             data.seek(0)
-                #         except (EOFError,BaseException):
-                #             print("Something went wrong in genebank file downloading")
-                #             next
-                #         try:
-                #             uncompressed = gzip.decompress(data.read())
-                #             with open(work_dir + '/Candidate_genomes/' + str(tax_id) + '/' + assembly_name + '.gbk', 'wb') as file:
-                #                 file.write(uncompressed)
-                #             file.close()
-                #             gbk_flag = 1
-                #         except (zlib.error,OSError,BaseException):
-                #             print("Something went wrong in genebank file downloading")
-                #             next
-
-                #         ##下载fasta文件
-                #         fasta_flag = 0
-                #         data = BytesIO()
-                #         try:
-                #             ftp.retrbinary('RETR ' + refseq, data.write, 1024)
-                #             data.seek(0)
-                #         except (EOFError,BaseException):
-                #             print("Something went wrong in fasta file downloading")
-                #             next
-                #         try:
-                #             uncompressed = gzip.decompress(data.read())
-                #             with open(work_dir + '/Candidate_genomes/' + str(tax_id) + '/' + assembly_name + '.fasta', 'wb') as file:
-                #                 file.write(uncompressed)
-                #             file.close()
-                #             fasta_flag = 1
-                #         except (zlib.error,OSError,BaseException):
-                #             print("Something went wrong in fasta file downloading")
-                #             next
-                #         # 确保fasta文件和genebank同时下载了
-                #         if (fasta_flag + gbk_flag < 2)  and  (fasta_flag + gbk_flag > 0):
-                #             try:
-                #                 os.system('rm ' + work_dir + '/Candidate_genomes/' + str(tax_id) + '/' + assembly_name + '.*')
-                #             except BaseException:
-                #                 next
-                #         else:
-                #             pass
-                #     except (IndexError, BaseException):
-                #         print("Cant find ftp link for " + str(genome_id))
-                #         next
-
-                # except (ValidationError, BaseException): 
-                #     print('Something went wrong in Entrez parsing') 
-                #     next
-
             print("\n")
             print("物种/菌株" + str(tax_id) + '下载完成')
             print("\n")
@@ -498,7 +309,6 @@ def filterAlignment(df, work_dir, query_string, align_threshold, alignlen_thresh
                 accessionIDnum = re.split('_', genome_name)[1]
                 genome_accession = '_'.join(genome_accession)
                 file_path= os.path.join(root,file)
-                print(file_path)
                 try:
                     blast_result = pd.read_csv(file_path, sep='\t')
                     blast_result.columns = ['proteinID', 'genomeID', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore','qlen', 'slen']
@@ -511,7 +321,6 @@ def filterAlignment(df, work_dir, query_string, align_threshold, alignlen_thresh
                     blast_result['AccessionID'] = genome_accession
                     blast_result['accessionIDnum'] = accessionIDnum
                     blast_result['ProteinFamily'] = nan
-                    print(blast_result)
                     for proteinid in query_list:
                         try:
                             protein_family = protein_family_info[proteinid].to_list()
@@ -565,7 +374,6 @@ def filterAlignment(df, work_dir, query_string, align_threshold, alignlen_thresh
                 next
     try:
         df_all = pd.concat(df_list)
-        print(df_all)
         df_all = df_all.drop_duplicates()
         df_all = df_all.reset_index(drop=True)
         ## 增加正负链,蛋白质来源信息库信息以及序列信息
@@ -706,7 +514,6 @@ def runAntismash(query_string, work_dir, Filtered_PF, space_len,neighbour ):
     hmm_file_name_list =[]
     hmm_file_list = []
     for block_hmm in glob.glob(os.path.join(work_dir, '*.hmm')):
-        print(block_hmm)
         ## Copy hmm file to antismash folder
         hmm_file_name = os.path.basename(block_hmm)
         hmm_file_list.append(hmm_file_name)
@@ -786,25 +593,14 @@ def runAntismash(query_string, work_dir, Filtered_PF, space_len,neighbour ):
 
     ## Get path of antismash
     antismash = subprocess.run(['which', 'antismash'], stdout=subprocess.PIPE)
-    print(antismash.returncode)
-    print('\n')
     if not antismash.returncode:
         antismash= antismash.stdout.decode('utf-8')
         antismash = antismash.replace('\n', '')
         antismash = os.path.dirname(antismash)
         path = subprocess.run(['find', '/opt/', '-name', 'hmm_detection'], stdout=subprocess.PIPE)
-        print('hello')
-        print('\n')
-        print(path)
-        print('\n')
-        print(path.returncode)
-        print('\n')
         if not path.returncode:
-            print(path.stdout)
             path = path.stdout.decode('utf-8')
-            print(path)
             path = path.replace('\n', '')
-            print(path)
         else:
             print("Error found when looking for hmm_detection folder in your docker image, please make sure it's installed correctedly!!")
     else:
@@ -848,12 +644,10 @@ def runAntismash(query_string, work_dir, Filtered_PF, space_len,neighbour ):
     print("yes")
     ## run antismash
     candidate_gbk_file_list = list(set(Filtered_PF['accessionIDnum'].to_list()))
-    print(candidate_gbk_file_list)
     for accessionIDnum in candidate_gbk_file_list:
         refseq_accession = 'GCF_'+str(accessionIDnum)
         #for gbkfile in glob.glob(os.path.join(work_dir, 'Candidate_genomes', '*','*'+genebak_accession+'*.gbff')):
         for gbkfile in glob.glob(os.path.join(work_dir, 'Candidate_genomes', '*','*'+str(accessionIDnum)+'*.gbff')):
-            print(gbkfile)
             subprocess.run(['mkdir','-p',os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
             os.system('ls -d ' + os.path.join(work_dir, 'Anitismash_Result', refseq_accession))
             antismash_flag = subprocess.run(['antismash', '--hmmdetection-strictness','strict' ,'--taxon', 'bacteria', gbkfile ,'--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
@@ -994,7 +788,7 @@ def summaryAntismashResult(Result_folder, work_dir):
         genomes.close
 
 
-def StrainClassification(BGC_stat, db_file):
+def StrainClassification(BGC_stat, db_file, work_dir):
     df = BGC_stat
     db = pd.read_csv(db_file,sep='\t',encoding = "ISO-8859-1",dtype=str)
 
@@ -1105,7 +899,6 @@ def StrainClassification(BGC_stat, db_file):
                 df.loc[row,'BGCPatternID'] = p
             else:
                 next
-    print(df)
 
     for i in pattern_df['BGCPattern_Name']:
         df[i] = nan
@@ -1120,18 +913,19 @@ def StrainClassification(BGC_stat, db_file):
     df.to_csv(os.path.join(work_dir, 'Tree_metadata.xls'), sep = '\t')
 
 def buildPhylogenetic_tree(work_dir, input_genomes_folder_name):
-
+    
     classification_file = os.path.join(work_dir, 'Strain_classification.xls')
-    classification_df = pd.read_csv(classification_file, index_col=0, sep = '\t')
+    classification_df = pd.read_csv(classification_file, index_col=0, sep = '\t', dtype=str)
+    #annotated_df = classification_df
     annotated_df = classification_df[classification_df['others'] != 'yes']
-    tree_strain_list = list(set(annotated_df['AssemblyID'].to_list()))
-    if os.path.isdir(os.path.join(work_dir,'StrainPhylogeneticTree')):
+    tree_strain_list = list(set(annotated_df['AssemblyIDnum'].to_list()))
+    if os.path.isdir(os.path.join(work_dir,'StrainPhylogeneticTree/Input')):
         pass
     else:
-        subprocess.run(['mkdir',os.path.join(work_dir,'StrainPhylogeneticTree')])
+        subprocess.run(['mkdir','-p',os.path.join(work_dir,'StrainPhylogeneticTree/Input/')])
     
     ## Look for input genomes and copy them into folder
-    input_genomes_folder = subprocess.run(['find', '/opt/', '-name', input_genomes_folder_name], stdout=subprocess.PIPE)
+    input_genomes_folder = subprocess.run(['find', work_dir, '-name', input_genomes_folder_name], stdout=subprocess.PIPE)
     if not input_genomes_folder.returncode:
         input_genomes_folder = input_genomes_folder.stdout.decode('utf-8')
         input_genomes_folder = input_genomes_folder.replace('\n', '')
@@ -1139,15 +933,100 @@ def buildPhylogenetic_tree(work_dir, input_genomes_folder_name):
         print('Can\'t find input genomes folder in' + input_genomes_folder_name)
 
     for input_tree_file in glob.glob(os.path.join(input_genomes_folder, '*[fasta,fna]')):
-        subprocess.run(['cp', input_tree_file, os.path.join(work_dir,'StrainPhylogeneticTree')])
+        # 获取Input Genomes的NC ID
+        with open(input_tree_file) as handle:
+            nc_id_list = []
+            for record in SeqIO.parse(handle, "fasta"):
+                if record.id in annotated_df['ID'].to_list():
+                    next
+                else:
+                    subprocess.run(['cp', input_tree_file, os.path.join(work_dir,'StrainPhylogeneticTree/Input/')])
 
     for strain_id in tree_strain_list:
-        for fasta_file in glob.glob(os.path.join(work_dir, 'Candidate_genomes') + '*/' + strain_id + '*fna'):
-            subprocess.run(['cp', fasta_file, os.path.join(work_dir,'StrainPhylogeneticTree')])
-    
-    ## Create strain tree file
-    subprocess.run(['JolyTree.sh', '-i', os.path.join(work_dir,'StrainPhylogeneticTree'), '-b', 'Strain_tree', '-t', '20'])
+        for fasta_file in glob.glob(os.path.join(work_dir, 'Candidate_genomes') + '/*/*' + str(strain_id) + '*'):
+            if fasta_file.endswith('fasta') or fasta_file.endswith('fna'):
+                file_size = os.path.getsize(fasta_file)
+                if file_size == 0:
+                    next
+                else:
+                    subprocess.run(['cp', fasta_file, os.path.join(work_dir,'StrainPhylogeneticTree/Input/')])
+            else:
+                next
 
+    ## Create strain tree file
+    subprocess.run(['JolyTree.sh', '-i', os.path.join(work_dir,'StrainPhylogeneticTree/Input/'), '-b', os.path.join(work_dir,'StrainPhylogeneticTree/','Strain_tree'), '-t', '20'])
+
+def Infer_candidate_strains(work_dir):
+    annotated_df = pd.read_table(os.path.join(work_dir,'Strain_classification.xls'), sep = '\t',dtype=str)
+    # 去掉ID栏多余的前缀
+    newID_list = []
+    for id in annotated_df['ID'].to_list():
+        new_id = re.sub(r'.+_', '',id)
+        newID_list.append(new_id)
+    annotated_df['ID'] = newID_list
+
+    distance_file = glob.glob(work_dir + '/StrainPhylogeneticTree/' + 'Strain_tree' + '.d')
+    distance_file = distance_file[0]
+    distance_matrtix = pd.read_csv(distance_file, skiprows = 1, index_col = 0,sep ='\s+',header=None)
+    newname = []
+    for i in distance_matrtix.index.values:
+        newname.append(re.split('_', i)[1])
+    name = pd.Series(newname)
+    distance_matrtix = distance_matrtix.set_index(name)
+    distance_matrtix.columns = newname
+
+    for input_tree_file in glob.glob(os.path.join(work_dir,'Input_genomes/*')):
+        if input_tree_file.endswith('fasta') or input_tree_file.endswith('fna'):
+        # 获取Input Genomes的NC ID
+            with open(input_tree_file) as handle:
+                Assemlbly_ID_list = []
+                for record in SeqIO.parse(handle, "fasta"):
+                    tmp_id = re.split('_',record.id)[1]
+                    if tmp_id in annotated_df['ID'].to_list():
+                        Assemlbly_ID_num = annotated_df[annotated_df['ID'] == tmp_id]['AssemblyID'].to_list()[0]
+                        Assemlbly_ID_num = re.split('_',Assemlbly_ID_num)[1]
+                        Assemlbly_ID_list.append(Assemlbly_ID_num)
+                    else:
+                        next
+        else:
+            next
+
+
+    content = '候选菌株信息:\n'
+
+    if len(Assemlbly_ID_list) == 0:
+        content = '未能找到候选工程菌'
+    else:
+        pass
+
+    for pathogen in set(Assemlbly_ID_list):
+        tmp_pathogen = annotated_df[annotated_df['AssemblyIDnum'] == pathogen]['organism'].to_list()[0]
+        #tmp_df = annotated_df
+        tmp_df = annotated_df[annotated_df['Type'] == 'Industrial workhorse']    
+
+        content = content + tmp_pathogen + '的候选工程菌为:\n'
+        tmp_distance_series = distance_matrtix.loc[pathogen,]
+        tmp_distance_series = tmp_distance_series.sort_values(ascending = True)
+        tmp_candidate = tmp_distance_series.rename('ID')
+        count = 0
+        candidate_list = []
+        for id in tmp_candidate.index.values:
+            if id in tmp_df['AssemblyIDnum'].tolist():
+                if count < 11:
+                    candidate = tmp_df[tmp_df['AssemblyIDnum'] == id]['organism'].tolist()[0]
+                    candidate_list.append(candidate)
+                    count = count + 1
+                else:
+                    break
+            else:
+                next
+        try:
+            content = content + '\n'.join(candidate_list[1:])
+        except KeyError:
+            content = '未能找到候选工程菌'
+
+    with open(os.path.join(work_dir,'候选菌株信息.txt'), 'w') as out:
+        out.write(content)
 
 ########### functions ###########
 
@@ -1197,6 +1076,7 @@ merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
 ## 下载菌株基因组序列
 print("\n")
 print('菌株基因组下载开始')
+print(datetime.datetime.now())
 print("\n")
 
 info_list = downloadGenome(merged_df, work_dir)
@@ -1207,44 +1087,52 @@ all_assembly_id_list = info_list[3]
 
 print("\n")
 print('菌株基因组下载完成')
+print(datetime.datetime.now())
 print("\n")
 
 ## 下载蛋白质序列
 print("\n")
 print("开始下载物种/菌株过滤后的蛋白质")
+print(datetime.datetime.now())
 print("\n")
 
 downloadProtein(list(set(merged_df['Organism ID'].to_list())), merged_df, work_dir)
 
 print("\n")
 print("物种/菌株过滤后的蛋白质下载完成")
+print(datetime.datetime.now())
 print("\n")
 
 ## 开始序列比对
 print("\n")
 print("开始序列比对")
+print(datetime.datetime.now())
 print("\n")
 
 sequenceAlignment(work_dir + '/Candidate_genomes/')
 
 print("\n")
 print("序列比对结束")
+print(datetime.datetime.now())
 print("\n")
 
 # 开始比对结果过滤
 print("\n")
 print("开始序列比对结果过滤")
+print(datetime.datetime.now())
 print("\n")
 
 filterAlignment(merged_df, work_dir, query_string, align_threshold, alignlen_threshold)
 
 print("\n")
 print("序列比对过滤结束")
+print(datetime.datetime.now())
 print("\n")
 
 # 开始多序列比对以及构建HMMprofile
 print("\n")
 print("开始多序列比对以及构建HMMprofile")
+print(datetime.datetime.now())
 print("\n")
 
 Filtered_alignment_file  = work_dir + "Genome_Alignment/Filtered_PF_alignemnt.xls"
@@ -1253,23 +1141,27 @@ buildHMMprofile(Filtered_alignment, work_dir ,query_string )
 
 print("\n")
 print("多序列比对以及构建HMMprofile结束")
+print(datetime.datetime.now())
 print("\n")
 
 
 ## 开始运行antismash
 print("\n")
 print("开始运行antismash")
+print(datetime.datetime.now())
 print("\n")
 
 runAntismash(query_string, work_dir, Filtered_alignment, Antismash_gap_len, Antismash_extenson_len)
 
 print("\n")
 print("antismash运行完成")
+print(datetime.datetime.now())
 print("\n")
 
 ## 开始总结antismash结果
 print("\n")
 print("开始总结antismash结果")
+print(datetime.datetime.now())
 print("\n")
 
 Anitismash_Result_path = os.path.join(work_dir, 'Anitismash_Result1')
@@ -1277,11 +1169,13 @@ summaryAntismashResult(Anitismash_Result_path, work_dir)
 
 print("\n")
 print("antismash结果总结完成")
+print(datetime.datetime.now())
 print("\n")
 
 ## 开始统计菌株分类信息
 print("\n")
 print("开始统计菌株分类信息")
+print(datetime.datetime.now())
 print("\n")
 
 BGC_stat = pd.read_csv(os.path.join(work_dir, 'BGC_stat.xls'), header= 0, sep = "\t", dtype=str)
@@ -1293,19 +1187,35 @@ if not db_file.returncode:
 else:
     print("Can't find database file, please check")
 
-StrainClassification(BGC_stat, db_file)
+StrainClassification(BGC_stat, db_file, work_dir)
 
 print("\n")
 print("统计菌株分类信息结束")
+print(datetime.datetime.now())
 print("\n")
 
 ## 开始进化树构建
 print("\n")
 print("开始进化树构建")
+print(datetime.datetime.now())
 print("\n")
 
 buildPhylogenetic_tree(work_dir,Input_genomes)
 
 print("\n")
 print("进化树构建结束")
+print(datetime.datetime.now())
+print("\n")
+
+## 开始挑选候选菌株
+print("\n")
+print("开始挑选候选菌株")
+print(datetime.datetime.now())
+print("\n")
+
+Infer_candidate_strains(work_dir)
+
+print("\n")
+print("挑选候选菌株结束")
+print(datetime.datetime.now())
 print("\n")
