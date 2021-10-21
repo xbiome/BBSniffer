@@ -37,6 +37,8 @@ from http.client import IncompleteRead
 import Bio
 import matplotlib.pyplot as plt
 import datetime
+from subprocess import Popen
+from subprocess import TimeoutExpired
 
 
 ########### arguments ###########
@@ -128,7 +130,6 @@ def downloadGenome(dataframe, work_dir):
     species_id_list = []
     organism_list = []
     protein_family_info = {}
-    all_assembly_id_list = []
 
     for row in range(0, dataframe.shape[0]):
         species_name = dataframe['Organism'].iloc[row,]
@@ -144,283 +145,113 @@ def downloadGenome(dataframe, work_dir):
             proteinfamily_type = dataframe['ProteinFamily'].iloc[row,]
 
             protein_family_info[protein_ID] = proteinfamily_type
-            species_id_list.append(organism_id)
+            species_id_list.append(str(organism_id))
             organism_list.append(organism)
         except IndexError:
             next
 
     # Retrieving genomes from the Entrez databases
     if os.path.exists(work_dir +'/Candidate_genomes/'): 
-        subprocess.run(["rm -rf", work_dir + "/Candidate_genomes/"], shell=True)
+        subprocess.run(["rm", "-rf", work_dir + "/Candidate_genomes/*"], shell=True)
         subprocess.run(["mkdir", work_dir + "/Candidate_genomes/"], shell=True)
     else:
         pass
 
-    for tax_id in list(set(species_id_list)):
-        ## 创建下载目录
-        if os.path.isdir(work_dir + '/Candidate_genomes/'+ str(tax_id) + '/'):
-            for root, subdir , files in os.walk(work_dir + '/Candidate_genomes/'+ str(tax_id) + '/'):
-                for gz_file in files:
-                    if gz_file.endswith('gz'):
-                        print(gz_file)
-                        gzfile_path = os.path.join(root, gz_file)
-                        unzip_status = subprocess.run(['gunzip', gzfile_path], stdout=subprocess.PIPE)
-                        if unzip_status.returncode:
-                            print(gzfile_path + ' unzip failed!!')
-                            next
-                        else:
-                            pass
-                    else:
-                        next
+    content = '\n'.join(list(set(species_id_list)))
+    with open(os.path.join(work_dir ,'strains_ID.txt'), 'w+') as out:
+        out.write(content)
+        
+
+    ## 根据输入文件下载Refseq和genebank
+    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir ,'strains_ID.txt'), 'bacteria' ,'--assembly-levels', 'complete,chromosome', '--flat-output','--parallel', '10','-r' , '10', '-o' , work_dir + '/Candidate_genomes/', '-s', 'genbank'], stdout=subprocess.PIPE)
+    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir ,'strains_ID.txt'), 'bacteria' ,'--assembly-levels', 'complete,chromosome', '-F' ,'fasta' ,'--flat-output','--parallel', '10', '-r' , '10','-o' , work_dir + '/Candidate_genomes/'], stdout=subprocess.PIPE)
+
+        
+    for gz_file in glob.glob(work_dir + '/Candidate_genomes/*gz'):
+        unzip_status = subprocess.run(['gunzip','-f', gz_file], stdout=subprocess.PIPE)
+        if unzip_status.returncode:
+            print(gz_file + ' unzip failed!!')
+            subprocess.run(["rm", work_dir + "/Candidate_genomes/" + gz_file], shell=True)
+            next
         else:
-            os.system('mkdir -p ' + work_dir + '/Candidate_genomes/'+ str(tax_id) + '/')
-            ## 下载 genebankfile
-            genebank_flag = 0
-            status = subprocess.run(['ncbi-genome-download', '--taxids' , str(tax_id), 'bacteria' ,'--assembly-levels', 'complete,chromosome', '--flat-output','--parallel', '10','-r' , '10', '-o' , work_dir + '/Candidate_genomes/'+ str(tax_id) + '/', '-s', 'genbank'], stdout=subprocess.PIPE)
-            if status.returncode:
-                print('Something went wrong when downloading the genebank file of tax id ' + str(tax_id) + ' !!')
-                next
-            else:
-                print('tax id ' + str(tax_id) + ' download finished!!')
-                genebank_flag = 1
-                pass
+            pass
 
-            ## 下载 fastafile
-            fasta_flag = 0
-            status = subprocess.run(['ncbi-genome-download', '--taxids' , str(tax_id), 'bacteria' ,'--assembly-levels', 'complete,chromosome', '-F' ,'fasta' ,'--flat-output','--parallel', '10', '-r' , '10','-o' , work_dir + '/Candidate_genomes/'+ str(tax_id) + '/'], stdout=subprocess.PIPE)
-            if status.returncode:
-                print('Something went wrong when downloading the ref seq file of tax id ' + str(tax_id) + ' !!')
-                next
-            else:
-                print('tax id ' + str(tax_id) + ' download finished!!')
-                fasta_flag = 1
-                pass
-            
-            ## 检查 genebankfile和fastafile 是否同时下载完成
-            if fasta_flag + genebank_flag > 0:
-                pass
-            else:
-                print('Something went wrong when downloading the files of tax id ' + str(tax_id) + ' !!')
-                ## remove downloaded files when download is not completed
-                if os.path.isdir(work_dir + '/Candidate_genomes/'+ str(tax_id) + '/'):
-                    subprocess.run(['rm', '-rf', work_dir + '/Candidate_genomes/'+ str(tax_id) + '/'])
-                else:
-                    pass
-                next
+    ## 检查是否每一个解压后的基因组都有Refseq和对应genebank文件
+    for refseq in glob.glob(work_dir + '/Candidate_genomes/*fna*gz'):
+        file_name = os.path.basename(refseq)
+        Refseq_ID = re.split('_',file_name)[0:2]
+        Refseq_ID = '_'.join(Refseq_ID)
+        pattern = work_dir + '/Candidate_genomes/' + Refseq_ID + '*gz'
+        file_list = glob.glob(pattern)
+        if len(file_list) ==2 :
+            pass
+        else:
+            subprocess.run(['rm', work_dir + '/Candidate_genomes/' + Refseq_ID + '*gz'])
 
-            ## 解压下载压缩文件
-            for root, subdir , files in os.walk(work_dir + '/Candidate_genomes/'+ str(tax_id) + '/'):
-                for gz_file in files:
-                    if gz_file.endswith('gz'):
-                        print(gz_file)
-                        gzfile_path = os.path.join(root, gz_file)
-                        unzip_status = subprocess.run(['gunzip', gzfile_path], stdout=subprocess.PIPE)
-                        if unzip_status.returncode:
-                            print(gzfile_path + ' unzip failed!!')
-                            next
-                        else:
-                            pass
-                    else:
-                        next
+    return [species_id_list, organism_list, protein_family_info]    
 
-            print("\n")
-            print("物种/菌株" + str(tax_id) + '下载完成')
-            print("\n")
-    
-    return [species_id_list, organism_list, protein_family_info, all_assembly_id_list]    
-
-def downloadProtein(species_id_list, dataframe, work_dir):
-    for tax_id in list(set(species_id_list)):
-        if os.path.isdir(work_dir + '/Candidate_genomes/' + str(tax_id) + '/'):
-            Organs = dataframe[dataframe['Organism ID']==tax_id]['Organism'].tolist()
-            Organs = list(set(Organs))
-            Proteins = dataframe[dataframe['Organism ID']==tax_id].index
-            Proteins = list(set(Proteins))
-            Protein_names = dataframe[dataframe['Organism ID']==tax_id]['Protein names'].tolist()
-            Protein_names = list(set(Protein_names))
-            content_list = []
-            for proteinID in Proteins:
-                try:
-                    Sequence = dataframe.at[proteinID, 'Sequence'].to_list()
-                    Sequence = Sequence[0]
-                except AttributeError:
-                    Sequence = dataframe.at[proteinID, 'Sequence']
-                content = '>' + proteinID + '\n' + Sequence
+def downloadProtein(dataframe, work_dir):
+    dataframe = dataframe.drop_duplicates()
+    if os.path.exists(work_dir + '/All_proteins.fasta'):
+        os.system('rm'+ work_dir + '/All_proteins.fasta')
+    else:
+        pass
+    id_list = []
+    seq_list = []
+    content_list = []
+    for tmp_id in dataframe.index.values:
+        if tmp_id not in id_list:
+            id_list.append(tmp_id)
+            try:
+                tmp_seq = dataframe.loc[tmp_id,'Sequence'].to_list()[0]
+                print(tmp_seq)
+                seq_list.append(tmp_seq)
+                content ='>' + tmp_id + '\n' + tmp_seq
                 content_list.append(content)
-            all_protein_seq = '\n'.join(content_list)
+            except KeyError:
+                tmp_seq = dataframe.loc[tmp_id,'Sequence'].to_list()
+                print(tmp_seq)
+                seq_list.append(tmp_seq)
+                content ='>' + tmp_id + '\n' + tmp_seq
+                content_list.append(content)
+        else:
+            next         
+    proteins = '\n'.join(content_list)
+    with open (work_dir + '/All_proteins.fasta', 'w+') as p_seq:
+        p_seq.write(proteins)
 
-            #os.system('mkdir '+ work_dir + '/Candidate_genomes/' + str(tax_id) + '/')
-
-            if os.path.exists(work_dir + '/Candidate_genomes/' + str(tax_id) + '/' + 'proteins.fasta'):
-                os.system('rm '+ work_dir + '/Candidate_genomes/' + str(tax_id) + '/' + 'proteins.fasta')
+def sortDownloadedData(work_dir):
+    ID_dict = {}
+    datafolder = os.path.join(work_dir,'Candidate_genomes')
+    all_fna_files = glob.glob(os.path.join(datafolder, '*', '*fna'))
+    ID_list = []
+    for fna_file in all_fna_files:
+        refseq_file_name = os.path.basename(fna_file)
+        tmp_folder = os.path.dirname(fna_file)
+        ID = re.split('_', refseq_file_name)[1]
+        ID = re.split('.fna', ID)[0]
+        gbff_file_pattern = os.path.join(tmp_folder, '*'+ ID + '*.gbff')
+        ## Check if relevant gbff file exists, jump to next id if not.
+        for gbff_file in glob.glob(gbff_file_pattern):
+            if os.path.isfile(gbff_file):
+                flag = 1
             else:
-                pass
-            with open (work_dir + '/Candidate_genomes/' + str(tax_id) + '/' + 'proteins.fasta', 'a+') as p_seq:
-                p_seq.write(all_protein_seq)
+                flag = 0
+        if flag :
+            ID_list.append(ID)
         else:
             next
-
-def sequenceAlignment(sequence_dir):
-    dir_list = []
-    for root, subdir, files in os.walk(sequence_dir):
-        for file in files:
-            if file.endswith('gbff'):
-                #dir_name = basename(root)
-                dir_list.append(root)
-    dir_list = list(set(dir_list))
-
-    for dir in dir_list:
-        for root, subdir, files in os.walk(dir):
-            for file in files:
-                if (re.search('[^proteins].fna', file)) and (file.endswith('.fna')):
-                    file_path = os.path.join(root,file)
-                    query =  os.path.join(root, 'proteins.fasta')
-                    os.system("cd "+ dir)
-                    os.system("formatdb "+ "-i " + file_path+ ' -p F')
-                    os.system("tblastn "+ "-query "  + query + " -outfmt '6 std qlen slen' -db " + file_path + ' -out '+ file_path + '.result.xls')
-                else:
-                    next
+            print(fna_file + ' 无对应gbff文件')
+    ID_dict['accessionIDnum'] = ID_list
+    all_strains_id = pd.DataFrame.from_dict(ID_dict)
+    all_strains_id.to_csv(work_dir + '/All_Strains_for_Antismash.xls', sep = '\t')
+    return(all_strains_id)
 
 
-def filterAlignment(df, work_dir, query_string, align_threshold, alignlen_threshold):
-    candidate_genomes = []
-    protein_family_info = {}
-    ## 获得蛋白质所属蛋白家族信息
-    for i in df.index.values:
-        proteinID = i
-        protein_family = df.loc[i, 'ProteinFamily']
-        protein_family_info[proteinID] = protein_family
-    
-    ## 检查过滤后文件是否存在，存在则删除
-    os.system("mkdir " + work_dir + "Genome_Alignment/")
-    if os.path.isfile(work_dir +  '/Genome_Alignment/Filtered_PF_alignemnt.xls'):
-        subprocess.run(["rm", work_dir + "Genome_Alignment/Filtered_PF_alignemnt.xls"], shell=True)
-    else:
-        pass
-    
-    ## 开始过滤
-    ## 创建存放每个过滤后blalst dataframe的list
-    df_list = []
-    for root, subdir, files in os.walk(work_dir + 'Candidate_genomes/'):
-        for file in files:
-            if file.endswith('fna.result.xls'):
-                genome_name = re.split('\.fna\.result\.xls', file)[0]
-                genome_accession = re.split('_', genome_name)[0:2]
-                accessionIDnum = re.split('_', genome_name)[1]
-                genome_accession = '_'.join(genome_accession)
-                file_path= os.path.join(root,file)
-                try:
-                    blast_result = pd.read_csv(file_path, sep='\t')
-                    blast_result.columns = ['proteinID', 'genomeID', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore','qlen', 'slen']
-                    query_list = blast_result['proteinID'].tolist()
-                    query_list = list(set(query_list))
-                    blast_result = blast_result[blast_result['pident'] > align_threshold]
-                    blast_result = blast_result[blast_result['length'] > (blast_result['qlen']* alignlen_threshold)]        
-                    blast_result = blast_result.dropna(axis=0, how='any')
-                    blast_result = blast_result.reset_index(drop=True)
-                    blast_result['AccessionID'] = genome_accession
-                    blast_result['accessionIDnum'] = accessionIDnum
-                    blast_result['ProteinFamily'] = nan
-                    for proteinid in query_list:
-                        try:
-                            protein_family = protein_family_info[proteinid].to_list()
-                            protein_family = protein_family[0]
-                        except AttributeError:
-                            protein_family = protein_family_info[proteinid]
-                        blast_result[blast_result['proteinID'] == proteinid] = blast_result[blast_result['proteinID'] == proteinid].assign(**{'ProteinFamily': protein_family})
-                    
-                    if blast_result.shape[0] != 0 :
-                        pass
-                    else:
-                        next
 
-                    if ' and ' in query_string:
-                        blocks = re.split(' and ', query_string)
-                        block_num = len(blocks)
-                        block_flag_num = []
-                        for block in blocks:
-                            block = block.replace('(', '')
-                            block = block.replace(')', '')
-                            pf_list = re.split(' OR ', block)
-                            blast_result_tmp = blast_result[blast_result['ProteinFamily'].isin(pf_list)]
-                            if blast_result_tmp.shape[0] > 0:
-                                block = 1
-                            else:
-                                block = 0
-                            block_flag_num.append(block)
-                        if sum(block_flag_num) < block_num:
-                            next
-                        else:
-                            df_list.append(blast_result)
-                            candidate_genomes.append(genome_name)
-
-                    elif ' or ' in query_string:
-                        if blast_result.shape[0] != 0 :
-                            df_list.append(blast_result)
-                            candidate_genomes.append(genome_name)
-                        else:
-                            next
-
-                    else:
-                        if blast_result.shape[0] != 0 :
-                            df_list.append(blast_result)
-                            candidate_genomes.append(genome_name)
-                        else:
-                            next
-                    
-                except EmptyDataError:
-                    next
-            else:
-                next
-    try:
-        df_all = pd.concat(df_list)
-        df_all = df_all.drop_duplicates()
-        df_all = df_all.reset_index(drop=True)
-        ## 增加正负链,蛋白质来源信息库信息以及序列信息
-        db_type_list = []
-        chain_info_list = []
-        for row in range(0,df_all.shape[0],1):
-            proteinID = df_all.loc[row,'proteinID']
-            proteinID = re.split('\|', proteinID)[0]
-            db_type = protein_family_info[proteinID]
-            db_type_list.append(db_type)
-            sstart = df_all.iloc[row]['sstart']
-            send =  df_all.iloc[row]['send']
-            if sstart > send:
-                tmp = sstart
-                df_all.at[row,'sstart'] = send
-                df_all.at[row,'send'] = tmp
-                chain_info_list.append('-')
-            else:
-                chain_info_list.append('+')
-        df_all['Chain'] = chain_info_list
-        df_all['ProteinFamily'] = db_type_list
-        df_all.to_csv(work_dir + '/Genome_Alignment/Filtered_PF_alignemnt.xls', sep='\t', index=False)
-    except ValueError:
-        print('No result left after filtering, try lowering your thresholds !!')
-
-def buildHMMprofile(filtered_blast_result, work_dir, query_string):
+def buildHMMprofile(filtered_query, work_dir, query_string):
     ## 将所有蛋白整合到一起
-    complete_fasta = work_dir + 'All_proteins.fasta'
-
-    if os.path.exists(complete_fasta):
-        os.system('rm '+ complete_fasta)
-    else:
-        pass
-
-    for root, subdir, files in os.walk(work_dir + 'Candidate_genomes/'):
-        for file in files:
-            if file == 'proteins.fasta':
-                path = os.path.join(root, file)
-                for record in SeqIO.parse(path, "fasta"):
-                    id = str(record.id)
-                    seq= str(record.seq)
-                    content = '>' + id + '\n' + seq + '\n'
-                    with open(complete_fasta, 'a+') as out:
-                        out.write(content)
-                    out.close()
-            else:
-                next
+    complete_fasta = work_dir + '/All_proteins.fasta'
 
     if ' and ' in query_string:
         blocks = re.split(' and ', query_string)
@@ -429,8 +260,8 @@ def buildHMMprofile(filtered_blast_result, work_dir, query_string):
             block = block.replace('(', '')
             block = block.replace(')', '')
             pf_list = re.split(' OR ', block)
-            tmp_filtered_blast_result = filtered_blast_result[filtered_blast_result['ProteinFamily'].isin(pf_list)]
-            block_protein_list = tmp_filtered_blast_result['proteinID'].to_list()
+            tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
+            block_protein_list = tmp_filtered_result['Entry'].to_list()
 
             ## 从下载的蛋白序列中抓取block中包含的蛋白序列
 
@@ -438,7 +269,7 @@ def buildHMMprofile(filtered_blast_result, work_dir, query_string):
             n = n +1
 
             content_list = []
-            for record in SeqIO.parse(work_dir + 'All_proteins.fasta', "fasta"):
+            for record in SeqIO.parse(complete_fasta, "fasta"):
                 id = str(record.id)
                 if id in block_protein_list:   
                     content = '>' + id + '\n' + str(record.seq)
@@ -457,15 +288,17 @@ def buildHMMprofile(filtered_blast_result, work_dir, query_string):
             block = block.replace('(', '')
             block = block.replace(')', '')
             pf_list = re.split(' OR ', block)
-            tmp_filtered_blast_result = filtered_blast_result[filtered_blast_result['ProteinFamily'].isin(pf_list)]
-            block_protein_list = tmp_filtered_blast_result['proteinID'].to_list()
-
+            tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
+            block_protein_list = tmp_filtered_result['Entry'].to_list()
+            print(pf_list)
+            print(tmp_filtered_result)
+            print(block_protein_list)
             ## 从下载的蛋白序列中抓取block中包含的蛋白序列
 
             tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
             n = n +1
             content_list = []
-            for record in SeqIO.parse(work_dir + 'All_proteins.fasta', "fasta"):
+            for record in SeqIO.parse(complete_fasta, "fasta"):
                 id = str(record.id)
                 if id in block_protein_list:   
                     content = '>' + id + '\n' + str(record.seq)
@@ -481,15 +314,15 @@ def buildHMMprofile(filtered_blast_result, work_dir, query_string):
         query_string = query_string.replace('(', '')
         query_string = query_string.replace(')', '')
         pf_list = re.split(' OR ', query_string)
-        tmp_filtered_blast_result = filtered_blast_result[filtered_blast_result['ProteinFamily'].isin(pf_list)]
-        block_protein_list = tmp_filtered_blast_result['proteinID'].to_list()
+        tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
+        block_protein_list = tmp_filtered_result['Entry'].to_list()
 
         ## 从下载的蛋白序列中抓取block中包含的蛋白序列
 
         tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
             
         content_list = []
-        for record in SeqIO.parse(work_dir + 'All_proteins.fasta', "fasta"):
+        for record in SeqIO.parse(complete_fasta, "fasta"):
             id = str(record.id)
             if id in block_protein_list:   
                 content = '>' + id + '\n' + str(record.seq)
@@ -505,10 +338,10 @@ def buildHMMprofile(filtered_blast_result, work_dir, query_string):
         basename = os.path.basename(block_fasta)
         dirname = os.path.dirname(block_fasta)
         basename = re.split('.fasta',basename)[0]
-        os.system('clustalo -i ' + block_fasta + ' ' + work_dir + basename + '.st')
+        subprocess.run(['clustalo', '-i', block_fasta, '-o', os.path.join(work_dir, basename + '.st')])
         os.system('hmmbuild  --amino ' + os.path.join(dirname, basename + '.hmm ') + ' ' + work_dir + basename + '.st')
         
-def runAntismash(query_string, work_dir, Filtered_PF, space_len,neighbour ):
+def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
     ## Prepare input files
     block_hmm_list = []
     hmm_file_name_list =[]
@@ -643,18 +476,37 @@ def runAntismash(query_string, work_dir, Filtered_PF, space_len,neighbour ):
     os.system('ls ' + os.path.join(path, 'cluster_rules','*'))
     print("yes")
     ## run antismash
-    candidate_gbk_file_list = list(set(Filtered_PF['accessionIDnum'].to_list()))
-    for accessionIDnum in candidate_gbk_file_list:
-        refseq_accession = 'GCF_'+str(accessionIDnum)
-        #for gbkfile in glob.glob(os.path.join(work_dir, 'Candidate_genomes', '*','*'+genebak_accession+'*.gbff')):
-        for gbkfile in glob.glob(os.path.join(work_dir, 'Candidate_genomes', '*','*'+str(accessionIDnum)+'*.gbff')):
-            subprocess.run(['mkdir','-p',os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
-            os.system('ls -d ' + os.path.join(work_dir, 'Anitismash_Result', refseq_accession))
-            antismash_flag = subprocess.run(['antismash', '--hmmdetection-strictness','strict' ,'--taxon', 'bacteria', gbkfile ,'--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
-            if not antismash_flag.returncode:
-                pass
-            else:
-                print('Antismash failed on ' + gbkfile)
+    
+    ID_list = []
+    candidate_gbk_file_list =  glob.glob(os.path.join(work_dir, 'Candidate_genomes','*.gbff'))
+    for candidate_gbk_file in candidate_gbk_file_list:
+        file_name = os.path.basename(candidate_gbk_file)
+        ID = re.split('_', file_name)[0:2]
+        ID = '_'.join(ID)
+        refseq_accession = 'GCF_'+str(ID)
+        os.makedirs(os.path.join(work_dir, 'Anitismash_Result', refseq_accession), exist_ok=True)
+        ID_list.append(ID)
+    
+    input = zip(ID_list, candidate_gbk_file_list)
+    command_list = []
+    for ID, input_file in input:
+        refseq_accession = 'GCF_'+str(ID)
+        command = ' '.join(['antismash', '--hmmdetection-strictness','strict' ,'--taxon', 'bacteria', input_file ,'--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
+        command_list.append(command)
+    
+    for i in range(0, len(command_list), n_threads):
+        tmp_command_list = command_list[i:i+n_threads]
+        procs = [ Popen(i,  shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE) for i in tmp_command_list]
+        for p in procs:
+            try:
+                outs, errs = p.communicate(timeout = 400)
+                if errs:
+                    print(errs.decode('ascii'))
+            except TimeoutExpired:
+                p.kill()
+                outs, errs = p.communicate()
+                print(errs.decode('ascii'))
+
 
 def summaryAntismashResult(Result_folder, work_dir):
     all_strain_dict = {}
@@ -696,10 +548,11 @@ def summaryAntismashResult(Result_folder, work_dir):
                             for feature in seq_record.features:
                                 if feature.type == "CDS":
                                     try:
-                                        if re.search(block_name, feature.qualifiers['gene_functions'][0]):
-                                            block_name_num = block_name_num + 1
-                                        else:
-                                            next
+                                        for function in feature.qualifiers['gene_functions']:
+                                            if re.search(block_name, function):
+                                                block_name_num = block_name_num + 1
+                                            else:
+                                                next
                                     except KeyError:
                                         next
                                 else:
@@ -808,7 +661,9 @@ def StrainClassification(BGC_stat, db_file, work_dir):
         strain_name = re.sub(' +', ' ', strain_name)
         strain_name = re.sub('\(','.',strain_name)
         strain_name = re.sub('\)','.',strain_name)
+        strain_name = re.sub('[-_]','.',strain_name)
         strain_name = re.sub(r'\s+','.',strain_name)
+
         taxid = df[df['AssemblyID'] == assemblyid]['TaxonID'].to_list()[0]
 
         ## 根据assemblyID注释
@@ -932,7 +787,12 @@ def buildPhylogenetic_tree(work_dir, input_genomes_folder_name):
     else:
         print('Can\'t find input genomes folder in' + input_genomes_folder_name)
 
-    for input_tree_file in glob.glob(os.path.join(input_genomes_folder, '*[fasta,fna]')):
+    input_tree_list_fna = glob.glob(os.path.join(input_genomes_folder, '*fna'))
+    input_tree_list_fasta = glob.glob(os.path.join(input_genomes_folder, '*fasta'))
+    input_tree_list = input_tree_list_fna + input_tree_list_fasta
+    
+    for input_tree_file in input_tree_list:
+        print(input_tree_file)
         # 获取Input Genomes的NC ID
         with open(input_tree_file) as handle:
             nc_id_list = []
@@ -943,7 +803,7 @@ def buildPhylogenetic_tree(work_dir, input_genomes_folder_name):
                     subprocess.run(['cp', input_tree_file, os.path.join(work_dir,'StrainPhylogeneticTree/Input/')])
 
     for strain_id in tree_strain_list:
-        for fasta_file in glob.glob(os.path.join(work_dir, 'Candidate_genomes') + '/*/*' + str(strain_id) + '*'):
+        for fasta_file in glob.glob(os.path.join(work_dir, 'Candidate_genomes') + '/' + str(strain_id) + '*'):
             if fasta_file.endswith('fasta') or fasta_file.endswith('fna'):
                 file_size = os.path.getsize(fasta_file)
                 if file_size == 0:
@@ -999,6 +859,7 @@ def Infer_candidate_strains(work_dir):
     else:
         pass
 
+    candidate_dict = {}
     for pathogen in set(Assemlbly_ID_list):
         tmp_pathogen = annotated_df[annotated_df['AssemblyIDnum'] == pathogen]['organism'].to_list()[0]
         #tmp_df = annotated_df
@@ -1008,22 +869,40 @@ def Infer_candidate_strains(work_dir):
         tmp_distance_series = distance_matrtix.loc[pathogen,]
         tmp_distance_series = tmp_distance_series.sort_values(ascending = True)
         tmp_candidate = tmp_distance_series.rename('ID')
+
+        ## 只挑选前10的物种输出到候选菌株信息.txt中
         count = 0
         candidate_list = []
+        all_candidate_list = []
         for id in tmp_candidate.index.values:
             if id in tmp_df['AssemblyIDnum'].tolist():
-                if count < 11:
-                    candidate = tmp_df[tmp_df['AssemblyIDnum'] == id]['organism'].tolist()[0]
-                    candidate_list.append(candidate)
-                    count = count + 1
+                if id == pathogen:
+                    next
                 else:
-                    break
+                    if count < 11:
+                        candidate = tmp_df[tmp_df['AssemblyIDnum'] == id]['organism'].tolist()[0]
+                        candidate_list.append(candidate)
+                        count = count + 1
+                    else:
+                        break
             else:
                 next
         try:
-            content = content + '\n'.join(candidate_list[1:])
+            content = content + '\n'.join(candidate_list)
         except KeyError:
             content = '未能找到候选工程菌'
+        
+        ## 挑选所有物种输出值所有候选菌株信息.xls中
+        for id in tmp_candidate.index.values:
+            if id in tmp_df['AssemblyIDnum'].tolist():
+                candidate = tmp_df[tmp_df['AssemblyIDnum'] == id]['organism'].tolist()[0]
+                all_candidate_list.append(candidate)
+            else:
+                next
+        candidate_dict[tmp_pathogen] = all_candidate_list
+    ## 将候选菌株写入文件
+    candidate_df = pd.DataFrame.from_dict(candidate_dict)
+    candidate_df.to_csv(os.path.join(work_dir,'所有候选菌株信息.xls'), sep = '\t')
 
     with open(os.path.join(work_dir,'候选菌株信息.txt'), 'w') as out:
         out.write(content)
@@ -1041,6 +920,7 @@ alignlen_threshold = params['alignment_len_threshold']
 Antismash_gap_len = params['Antismash_gap_len']
 Antismash_extenson_len = params['Antismash_extenson_len']
 Input_genomes = params['Input_genomes']
+n_threads = params['Antismash_threads']
 Email = params['Email']
 Entrez.email = Email
 query_string = params['Query']
@@ -1056,6 +936,7 @@ else:
 ## Start Uniprot querying
 print("\n")
 print('正在根据输入ID检索uniprot数据库')
+print(datetime.datetime.now())
 print("\n")
 
 uniprot_df_list = []
@@ -1073,6 +954,11 @@ merged_df = findMutualProtein(params['Query'], combined_df)
 merged_df = merged_df.drop_duplicates()
 merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
 
+print("\n")
+print('检索uniprot数据库完成')
+print(datetime.datetime.now())
+print("\n")
+
 ## 下载菌株基因组序列
 print("\n")
 print('菌株基因组下载开始')
@@ -1083,7 +969,6 @@ info_list = downloadGenome(merged_df, work_dir)
 species_id_list = info_list[0]
 organism_list = info_list[1]
 protein_family_info = info_list[2]
-all_assembly_id_list = info_list[3]
 
 print("\n")
 print('菌株基因组下载完成')
@@ -1096,36 +981,23 @@ print("开始下载物种/菌株过滤后的蛋白质")
 print(datetime.datetime.now())
 print("\n")
 
-downloadProtein(list(set(merged_df['Organism ID'].to_list())), merged_df, work_dir)
+downloadProtein(merged_df, work_dir)
 
 print("\n")
 print("物种/菌株过滤后的蛋白质下载完成")
 print(datetime.datetime.now())
 print("\n")
 
-## 开始序列比对
+# 开始整理下载数据并生成统计文件All_Strains_for_Antismash.xls
 print("\n")
-print("开始序列比对")
+print("开始整理下载数据并生成统计文件All_Strains_for_Antismash.xls")
 print(datetime.datetime.now())
 print("\n")
 
-sequenceAlignment(work_dir + '/Candidate_genomes/')
+sortDownloadedData(work_dir)
 
 print("\n")
-print("序列比对结束")
-print(datetime.datetime.now())
-print("\n")
-
-# 开始比对结果过滤
-print("\n")
-print("开始序列比对结果过滤")
-print(datetime.datetime.now())
-print("\n")
-
-filterAlignment(merged_df, work_dir, query_string, align_threshold, alignlen_threshold)
-
-print("\n")
-print("序列比对过滤结束")
+print("整理下载数据并生成统计文件All_Strains_for_Antismash.xls结束")
 print(datetime.datetime.now())
 print("\n")
 
@@ -1135,9 +1007,11 @@ print("开始多序列比对以及构建HMMprofile")
 print(datetime.datetime.now())
 print("\n")
 
-Filtered_alignment_file  = work_dir + "Genome_Alignment/Filtered_PF_alignemnt.xls"
-Filtered_alignment = pd.read_csv(Filtered_alignment_file, sep = '\t')
-buildHMMprofile(Filtered_alignment, work_dir ,query_string )
+# All_Strains_for_Antismash_file  = work_dir + "/All_Strains_for_Antismash.xls"
+# All_Strains_for_Antismash = pd.read_csv(All_Strains_for_Antismash_file, sep = '\t', dtype=str)
+Filtered_query_file = work_dir + "/Filtered_Query_result.xls"
+Filtered_query = pd.read_csv(Filtered_query_file, sep = '\t', dtype=str)
+buildHMMprofile(Filtered_query, work_dir ,query_string)
 
 print("\n")
 print("多序列比对以及构建HMMprofile结束")
@@ -1151,7 +1025,7 @@ print("开始运行antismash")
 print(datetime.datetime.now())
 print("\n")
 
-runAntismash(query_string, work_dir, Filtered_alignment, Antismash_gap_len, Antismash_extenson_len)
+runAntismash(query_string, work_dir, Antismash_gap_len, Antismash_extenson_len, n_threads)
 
 print("\n")
 print("antismash运行完成")
@@ -1164,7 +1038,7 @@ print("开始总结antismash结果")
 print(datetime.datetime.now())
 print("\n")
 
-Anitismash_Result_path = os.path.join(work_dir, 'Anitismash_Result1')
+Anitismash_Result_path = os.path.join(work_dir, 'Anitismash_Result')
 summaryAntismashResult(Anitismash_Result_path, work_dir)
 
 print("\n")
