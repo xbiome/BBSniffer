@@ -48,3 +48,4 @@ This scritp could be used to search Keywords in protein database (PFAM) and acqu
 ```
 docker run -i --rm -v WORK_DIR:/in  bmpsniffer:1 bash -c "python /opt/DockerImage/KeywordsSearch.py -work_dir /in/ -input_keywords 'gram positive pilin'"
 ```
+运行结束后可在工作目录下查看ProteinID.list文件。
