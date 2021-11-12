@@ -338,7 +338,7 @@ def buildHMMprofile(filtered_query, work_dir, query_string):
         basename = os.path.basename(block_fasta)
         dirname = os.path.dirname(block_fasta)
         basename = re.split('.fasta',basename)[0]
-        subprocess.run(['clustalo', '-i', block_fasta, '-o', os.path.join(work_dir, basename + '.st')])
+        subprocess.run(['clustalo', '-i', block_fasta, '-o', os.path.join(work_dir, basename + '.st'), '--threads', '20'])
         os.system('hmmbuild  --amino ' + os.path.join(dirname, basename + '.hmm ') + ' ' + work_dir + basename + '.st')
         
 def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
@@ -803,7 +803,7 @@ def buildPhylogenetic_tree(work_dir, input_genomes_folder_name):
                     subprocess.run(['cp', input_tree_file, os.path.join(work_dir,'StrainPhylogeneticTree/Input/')])
 
     for strain_id in tree_strain_list:
-        for fasta_file in glob.glob(os.path.join(work_dir, 'Candidate_genomes') + '/' + str(strain_id) + '*'):
+        for fasta_file in glob.glob(os.path.join(work_dir, 'Candidate_genomes')  + '/*' + str(strain_id) + '*'):
             if fasta_file.endswith('fasta') or fasta_file.endswith('fna'):
                 file_size = os.path.getsize(fasta_file)
                 if file_size == 0:
