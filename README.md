@@ -9,6 +9,7 @@ Edit input file base on your own project. Input file format was provided as foll
     "Query": "(pf16570 OR pf16569 OR pf16555) and (ipr042002)",
     "Input_genomes": "Input_genomes",
     "Email": "zhuzhengnong@xbiome.com",
+    "Antismash_threads": 10,
     "Antismash_gap_len": 20,
     "Antismash_extenson_len": 8
 }
@@ -19,9 +20,11 @@ Edit input file base on your own project. Input file format was provided as foll
 	Name of folder which contains input reference model strain's complete genome file(s).
 3. Email<br>
 	Email of users.
-4. Antismash_gap_len<br>
+4. Antismash_threads<br>
+	Thread number when runnning antismash. Higher thread number may reduce run time but may cost more computing resources.
+5. Antismash_gap_len<br>
 	Maximum length(in kbp) of gap region between elements in one BGC.
-5. Antismash_extenson_len<br>
+6. Antismash_extenson_len<br>
 	Length(in kbp) of flanking region of BGC's core region.
 
 ### Build your Docker image
