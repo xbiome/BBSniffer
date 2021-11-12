@@ -13,11 +13,16 @@ Edit input file base on your own project. Input file format was provided as foll
     "Antismash_extenson_len": 8
 }
 ```
-1. Query<br>. Input Protein family ID. Same category of protein families should be included in one parenthesis and linked by ' OR ', Different categories of protein families shold be linked with ' and '.
-2. Input_genomes<br>. Name of folder which contains input reference model strain's complete genome file(s).
-3. Email<br>. Email of users.
-4. Antismash_gap_len<br>. Maximum length(in kbp) of gap region between elements in one BGC.
-5. Antismash_extenson_len<br>. Length(in kbp) of flanking region of BGC's core region.
+1. Query<br>
+	Input Protein family ID. Same category of protein families should be included in one parenthesis and linked by ' OR ', Different categories of protein families shold be linked with ' and '.
+2. Input_genomes<br>
+	Name of folder which contains input reference model strain's complete genome file(s).
+3. Email<br>
+	Email of users.
+4. Antismash_gap_len<br>
+	Maximum length(in kbp) of gap region between elements in one BGC.
+5. Antismash_extenson_len<br>
+	Length(in kbp) of flanking region of BGC's core region.
 
 ### Build your Docker image
 在自己的计算机/集群构建镜像，命令参考下方，其中-t后引号中的内容为镜像名字和版本信息，用冒号分隔。<br>
