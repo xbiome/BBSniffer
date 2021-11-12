@@ -1,4 +1,4 @@
-# BGCSniffer
+# BMPSniffer
 ## Running the pipeline
 
 ### Creating Input file
