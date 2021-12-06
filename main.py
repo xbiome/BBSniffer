@@ -155,7 +155,7 @@ def downloadGenome(dataframe, work_dir):
         subprocess.run(["rm", "-rf", work_dir + "/Candidate_genomes/*"], shell=True)
         subprocess.run(["mkdir", work_dir + "/Candidate_genomes/"], shell=True)
     else:
-        pass
+        subprocess.run(["mkdir", work_dir + "/Candidate_genomes/"], shell=True)
 
     content = '\n'.join(list(set(species_id_list)))
     with open(os.path.join(work_dir ,'strains_ID.txt'), 'w+') as out:
@@ -163,8 +163,15 @@ def downloadGenome(dataframe, work_dir):
         
 
     ## 根据输入文件下载Refseq和genebank
-    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir ,'strains_ID.txt'), 'bacteria' ,'--assembly-levels', 'complete,chromosome', '--flat-output','--parallel', '10','-r' , '10', '-o' , work_dir + '/Candidate_genomes/', '-s', 'genbank'], stdout=subprocess.PIPE)
-    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir ,'strains_ID.txt'), 'bacteria' ,'--assembly-levels', 'complete,chromosome', '-F' ,'fasta' ,'--flat-output','--parallel', '10', '-r' , '10','-o' , work_dir + '/Candidate_genomes/'], stdout=subprocess.PIPE)
+    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
+                    'bacteria' ,'--assembly-levels', 'complete,chromosome',
+                    '--flat-output','--parallel', '10','-r' , '10', '-o' ,
+                    work_dir + '/Candidate_genomes/', '-s', 'genbank', '-v',
+                    '-d'], stdout=subprocess.PIPE)
+    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
+                    'bacteria' ,'--assembly-levels', 'complete,chromosome',
+                    '-F' ,'fasta' ,'--flat-output','--parallel', '10', '-r' ,
+                    '10','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
 
         
     for gz_file in glob.glob(work_dir + '/Candidate_genomes/*gz'):
@@ -341,7 +348,7 @@ def buildHMMprofile(filtered_query, work_dir, query_string):
         basename = os.path.basename(block_fasta)
         dirname = os.path.dirname(block_fasta)
         basename = re.split('.fasta',basename)[0]
-        subprocess.run(['clustalo', '-i', block_fasta, '-o', os.path.join(work_dir, basename + '.st', '--threads','20')])
+        subprocess.run(['clustalo', '-i', block_fasta, '-o', os.path.join(work_dir, basename + '.st'), '--threads','20'])
         os.system('hmmbuild  --amino ' + os.path.join(dirname, basename + '.hmm ') + ' ' + work_dir + basename + '.st')
         
 def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
