@@ -6,7 +6,7 @@ RUN conda install -c bioconda hmmer=3.3.2 -y
 RUN conda install -c bioconda blast=2.5.0 -y
 RUN conda install -c bioconda jolytree=1.1b -y
 RUN conda install -c bioconda blast-legacy=2.2.26 -y
-RUN conda config --add channels https://mirrors.ustc.edu.cn/anaconda/pkgs/free/ && \
+RUN conda config --add channels https://mirrors.ustc.edu.cn/anaconda/pkgs/free/
 
 RUN wget https://dl.secondarymetabolites.org/releases/latest/antismash-6.0.1.tar.gz
 RUN tar -zxvf antismash-6.0.1.tar.gz
