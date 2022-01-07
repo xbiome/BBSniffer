@@ -57,7 +57,7 @@ docker run -i --rm -v WORK_DIR:/in  bmpsniffer:1 bash -c "python /opt/DockerImag
 ### 2.1 Installation of WSL2
 For Windows Users, the installation of WSL(Windows Subsystem for Linux) is required. <br>
 Follow [this link](https://docs.microsoft.com/zh-cn/windows/wsl/install-manual) for complete installation of WSL(Windows Subsystem for Linux) on Windows 10 system PC.
-<span style="background-color: #FFFF00">Note: Ubuntu is recommanded in Step6</span>
+:+1: Note: Ubuntu is recommanded in Step6 :+1:
 
 ### 2.2 Installation of latest Docker Desktop
 Follow [this link](https://docs.docker.com/desktop/windows/install/) for complete installation of Docker Desktop.
