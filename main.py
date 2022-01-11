@@ -173,8 +173,8 @@ def downloadGenome(dataframe, work_dir):
                     '-F' ,'fasta' ,'--flat-output','--parallel', '10', '-r' ,
                     '10','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
 
-        
-    for gz_file in glob.glob(work_dir + '/Candidate_genomes/*gz'):
+    ## 解压基因组fasta文件
+    for gz_file in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna.gz'):
         unzip_status = subprocess.run(['gunzip','-f', gz_file], stdout=subprocess.PIPE)
         if unzip_status.returncode:
             print(gz_file + ' unzip failed!!')
@@ -184,16 +184,16 @@ def downloadGenome(dataframe, work_dir):
             pass
 
     ## 检查是否每一个解压后的基因组都有Refseq和对应genebank文件
-    for refseq in glob.glob(work_dir + '/Candidate_genomes/*fna*gz'):
+    for refseq in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna'):
         file_name = os.path.basename(refseq)
         Refseq_ID = re.split('_',file_name)[0:2]
         Refseq_ID = '_'.join(Refseq_ID)
         pattern = work_dir + '/Candidate_genomes/' + Refseq_ID + '*gz'
         file_list = glob.glob(pattern)
-        if len(file_list) ==2 :
+        if len(file_list) == 1 :
             pass
         else:
-            subprocess.run(['rm', work_dir + '/Candidate_genomes/' + Refseq_ID + '*gz'])
+            subprocess.run(['rm', work_dir + '/Candidate_genomes/' + Refseq_ID + '*'])
 
     return [species_id_list, organism_list, protein_family_info]    
 
@@ -240,7 +240,7 @@ def sortDownloadedData(work_dir):
         tmp_folder = os.path.dirname(fna_file)
         ID = re.split('_', refseq_file_name)[1]
         ID = re.split('.fna', ID)[0]
-        gbff_file_pattern = os.path.join(tmp_folder, '*'+ ID + '*.gbff')
+        gbff_file_pattern = os.path.join(tmp_folder, '*'+ ID + '*.gbff.gz')
         ## Check if relevant gbff file exists, jump to next id if not.
         for gbff_file in glob.glob(gbff_file_pattern):
             if os.path.isfile(gbff_file):
@@ -300,6 +300,9 @@ def buildHMMprofile(filtered_query, work_dir, query_string):
             pf_list = re.split(' OR ', block)
             tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
             block_protein_list = tmp_filtered_result['Entry'].to_list()
+            print(pf_list)
+            print(tmp_filtered_result)
+            print(block_protein_list)
             ## 从下载的蛋白序列中抓取block中包含的蛋白序列
 
             tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
@@ -485,7 +488,7 @@ def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
     ## run antismash
     
     ID_list = []
-    candidate_gbk_file_list =  glob.glob(os.path.join(work_dir, 'Candidate_genomes','*.gbff'))
+    candidate_gbk_file_list =  glob.glob(os.path.join(work_dir,'Candidate_genomes','*.gbff.gz'))
     for candidate_gbk_file in candidate_gbk_file_list:
         file_name = os.path.basename(candidate_gbk_file)
         ID = re.split('_', file_name)[0:2]
