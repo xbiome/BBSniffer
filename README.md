@@ -28,13 +28,21 @@ Edit input file base on your own project. Input file format was provided as foll
 6. Antismash_extenson_len<br>
 	Length(in kbp) of flanking region of BGC's core region.
 
-### 1.2 Build your Docker image
+### 1.2 Clone git repository
+在自己的计算机/集群克隆master branch。<br>
+```
+git clone git@github.com:xbiome/BMPSniffer.git -b master
+cd BMPSniffer
+```
+###
+
+### 1.3 Build your Docker image
 在自己的计算机/集群构建镜像，命令参考下方，其中-t后引号中的内容为镜像名字和版本信息，用冒号分隔。<br>
 Build Docker image in users' PC or HPC cluster. Command is shown blow, content quoted by single quote after '-t' is the name and version info of Docker image, separated by ":".
 ```
 docker build -t 'bmpsniffer:1' .
 ```
-### 1.3 Run program in command line
+### 1.4 Run program in command line
 镜像构建完成后运行整个流程，命令见下：<br>
 Run the pipeline with following command:
 ```
@@ -43,7 +51,7 @@ docker run -i --rm -v WORK_DIR:/in  bmpsniffer:1 bash -c "python /opt/DockerImag
 用户需将上方命令中的WORK_DIR替换为自己的分析路径。<br>
 Users should substitute 'WORK_DIR' with their own working directory, replace 'bmpsniffer:1' with their defined info from previous step and change the parameters in test.json file. Other command should be remained the same.
 
-### 1.4 Run Protein Keywords searching
+### 1.5 Run Protein Keywords searching
 用户可用此脚本进行蛋白质库中的Keywords searching。<br>
 This scritp could be used to search Keywords in protein database (PFAM) and acquire relevant protein family ID.
 ```
