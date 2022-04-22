@@ -1,4 +1,4 @@
-# BMPSniffer
+# BBSniffer
 
 ## 1 Running the pipeline
 
@@ -31,8 +31,8 @@ Edit input file base on your own project. Input file format was provided as foll
 ### 1.2 Clone git repository
 在自己的计算机/集群克隆master branch。<br>
 ```
-git clone git@github.com:xbiome/BMPSniffer.git -b master
-cd BMPSniffer
+git clone git@github.com:xbiome/BBSniffer.git -b master
+cd BBSniffer
 ```
 ###
 
@@ -40,22 +40,22 @@ cd BMPSniffer
 在自己的计算机/集群构建镜像，命令参考下方，其中-t后引号中的内容为镜像名字和版本信息，用冒号分隔。<br>
 Build Docker image in users' PC or HPC cluster. Command is shown blow, content quoted by single quote after '-t' is the name and version info of Docker image, separated by ":".
 ```
-docker build -t 'bmpsniffer:1' .
+docker build -t 'bbsniffer:1' .
 ```
 ### 1.4 Run program in command line
 镜像构建完成后运行整个流程，命令见下：<br>
 Run the pipeline with following command:
 ```
-docker run -i --rm -v WORK_DIR:/in  bmpsniffer:1 bash -c "python /opt/DockerImage/main.py -json /in/test.json -workdir /in/"
+docker run -i --rm -v WORK_DIR:/in  bbsniffer:1 bash -c "python /opt/DockerImage/main.py -json /in/test.json -workdir /in/"
 ```
 用户需将上方命令中的WORK_DIR替换为自己的分析路径。<br>
-Users should substitute 'WORK_DIR' with their own working directory, replace 'bmpsniffer:1' with their defined info from previous step and change the parameters in test.json file. Other command should be remained the same.
+Users should substitute 'WORK_DIR' with their own working directory, replace 'bbsniffer:1' with their defined info from previous step and change the parameters in test.json file. Other command should be remained the same.
 
 ### 1.5 Run Protein Keywords searching
 用户可用此脚本进行蛋白质库中的Keywords searching。<br>
 This scritp could be used to search Keywords in protein database (PFAM) and acquire relevant protein family ID.
 ```
-docker run -i --rm -v WORK_DIR:/in  bmpsniffer:1 bash -c "python /opt/DockerImage/KeywordsSearch.py -work_dir /in/ -input_keywords 'gram positive pilin'"
+docker run -i --rm -v WORK_DIR:/in  bbsniffer:1 bash -c "python /opt/DockerImage/KeywordsSearch.py -work_dir /in/ -input_keywords 'gram positive pilin'"
 ```
 运行结束后可在工作目录下查看ProteinID.list文件。
 
@@ -70,7 +70,7 @@ Follow [this link](https://docs.microsoft.com/zh-cn/windows/wsl/install-manual) 
 ### 2.2 Installation of latest Docker Desktop
 Follow [this link](https://docs.docker.com/desktop/windows/install/) for complete installation of Docker Desktop.
 
-### 2.3 Running BMPSniffer on WSL
+### 2.3 Running BBSniffer on WSL
 Open Ubuntu from your software list, login and Run pipeline following the instruction in Session 1
 
 

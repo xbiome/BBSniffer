@@ -42,7 +42,7 @@ from subprocess import TimeoutExpired
 
 
 ########### arguments ###########
-parser = argparse.ArgumentParser(description="BGCSniffer")
+parser = argparse.ArgumentParser(description="BBSniffer")
 parser.add_argument("-json", "--jsonfile", dest="jsonfile", help= "Please input the complete path of parameter file (JSON format)")
 parser.add_argument("-workdir", "--workdir", dest="workdir", help= "Please input your working directory")
 args = parser.parse_args()
