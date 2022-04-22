@@ -9,7 +9,7 @@ Edit input file base on your own project. Input file format was provided as foll
 {
     "Query": "(pf16570 OR pf16569 OR pf16555) and (ipr042002)",
     "Input_genomes": "Input_genomes",
-    "Email": "zhuzhengnong@xbiome.com",
+    "Email": "somebody@123.com",
     "Antismash_threads": 10,
     "Antismash_gap_len": 20,
     "Antismash_extenson_len": 8
