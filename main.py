@@ -212,17 +212,17 @@ def downloadProtein(dataframe, work_dir):
             try:
                 tmp_seq = dataframe.loc[tmp_id,'Sequence'].to_list()[0]
                 seq_list.append(tmp_seq)
-                content ='>' + tmp_id + '\n' + tmp_seq
+                content ='>' + str(tmp_id) + '\n' + tmp_seq
                 content_list.append(content)
             except KeyError:
                 tmp_seq = dataframe.loc[tmp_id,'Sequence'].to_list()
                 seq_list.append(tmp_seq)
-                content ='>' + tmp_id + '\n' + tmp_seq
+                content ='>' + str(tmp_id) + '\n' + tmp_seq
                 content_list.append(content)
             except AttributeError:
                 tmp_seq = dataframe.loc[tmp_id,'Sequence']
                 seq_list.append(tmp_seq)
-                content ='>' + tmp_id + '\n' + tmp_seq
+                content ='>' + str(tmp_id) + '\n' + tmp_seq
                 content_list.append(content)
         else:
             next         
@@ -300,9 +300,6 @@ def buildHMMprofile(filtered_query, work_dir, query_string):
             pf_list = re.split(' OR ', block)
             tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
             block_protein_list = tmp_filtered_result['Entry'].to_list()
-            print(pf_list)
-            print(tmp_filtered_result)
-            print(block_protein_list)
             ## 从下载的蛋白序列中抓取block中包含的蛋白序列
 
             tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
@@ -484,7 +481,6 @@ def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
     print('Check param files in antismash')
     os.system('ls ' + os.path.join(path, 'data','*hmm'))
     os.system('ls ' + os.path.join(path, 'cluster_rules','*'))
-    print("yes")
     ## run antismash
     
     ID_list = []
