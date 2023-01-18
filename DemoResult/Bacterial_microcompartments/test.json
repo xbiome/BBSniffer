@@ -1,0 +1,9 @@
+{
+    "Query": "(PF00936 OR PF03319) or (IPR000249 OR IPR004992 OR IPR009193 OR IPR009307 OR IPR013501 OR IPR014076 OR IPR014077 OR IPR020808 OR IPR030983 OR IPR030984) or (PS01139) or (SM00877)",
+    "Input_genomes": "Input_genomes",
+    "Email": "somebody@somecompany.com",
+    "alignment_threshold": 90,
+    "alignment_len_threshold": 0.9,
+    "Antismash_gap_len": 20,
+    "Antismash_extenson_len": 8
+}

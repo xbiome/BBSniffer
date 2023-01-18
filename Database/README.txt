@@ -1,0 +1,1 @@
+This directory contains the integrated database file "Database.xls" that would be used in the classification step in the pipeline to classify candidate strains into "Industrial workhorse", "Pathogen" and "Others" and the original database files in "Origin" folder that were used to generate "Database.xls" file.
