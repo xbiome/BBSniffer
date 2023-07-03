@@ -29,6 +29,6 @@ RUN pip3 install django
 RUN pip3 install git+https://github.com/chasemc/ncbi-genome-download@4c5c24e27aa8123c7995890046b17b815da3571b
 
 RUN mkdir /opt/DockerImage
-COPY main_noquerying.py  main.py test.json KeywordsSearch.py Database/ /opt/DockerImage/
+COPY main.py test.json KeywordsSearch.py Database/ /opt/DockerImage/
 
 CMD ["bash"]
