@@ -994,12 +994,12 @@ for pf_id in id_list:
        uniprot_df_list.append(tmp_df)
 
 combined_df = pd.concat(uniprot_df_list)
+combined_df = combined_df.set_index('Entry', drop = True)
 combined_df = combined_df.drop_duplicates()
 combined_df.to_csv(work_dir + 'Query_result.xls', sep ='\t')
 merged_df = findMutualProtein(params['Query'], combined_df)
 merged_df = merged_df.drop_duplicates()
 merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
-merged_df = merged_df.set_index('Entry')
 
 print("\n")
 print('Querying Uniprot ends!!!')
