@@ -39,7 +39,8 @@ import matplotlib.pyplot as plt
 import datetime
 from subprocess import Popen
 from subprocess import TimeoutExpired
-
+import requests
+from requests.adapters import HTTPAdapter, Retry
 
 ########### arguments ###########
 parser = argparse.ArgumentParser(description="BGCSniffer")
@@ -92,21 +93,56 @@ def extract_query_info(query_string):
                     id_list.append(id)
     return(id_list)
 
+def get_next_link(headers, re_next_link):
+    if "Link" in headers:
+        match = re_next_link.match(headers["Link"])
+        if match:
+            return match.group(1)
+
+def get_batch(batch_url, s, re_next_link):
+    while batch_url:
+        response = s.get(batch_url)
+        response.raise_for_status()
+        total = response.headers["x-total-results"]
+        yield response, total
+        batch_url = get_next_link(response.headers, re_next_link)
+
 def searchUniprot(pf_id):
+    re_next_link = re.compile(r'<(.+)>; rel="next"')
+    retries = Retry(total=5, backoff_factor=0.25, status_forcelist=[500, 502, 503, 504])
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    
     BASE = 'http://rest.uniprot.org'
     KB_ENDPOINT = '/uniprotkb/'
     QUERY_ID = pf_id
-    UNIPROT_URL = BASE + KB_ENDPOINT + 'search?query=' + QUERY_ID +  '&fields=accession,id,reviewed,protein_name,gene_names,organism_name,organism_id,length,sequence&format=tsv'
-    uniprot_result = requests.get(UNIPROT_URL)
+    UNIPROT_URL = BASE + KB_ENDPOINT + 'search?query=' + QUERY_ID +  '&fields=accession,id,reviewed,protein_name,gene_names,organism_name,organism_id,length,sequence&format=tsv&size=500'
+    
+    progress = 0
+    with open('query_res_tmp.tsv', 'w') as f:
+        for batch, total in get_batch(UNIPROT_URL, session, re_next_link):
+            lines = batch.text.splitlines()
+            if not progress:
+                print(lines[0], file=f)
+            for line in lines[1:]:
+                print(line, file=f)
+            progress += len(lines[1:])
+            print(f'{progress} / {total}')
+    
+    uniprot_df = pd.read_csv('query_res_tmp.tsv', sep="\t")
+    uniprot_df['ProteinFamily'] = pf_id
+    return(uniprot_df)
 
-    if uniprot_result.ok:
-        content = uniprot_result.text
-        content = io.StringIO(content)
-        uniprot_df = pd.read_csv(content, sep="\t", index_col=0)
-        uniprot_df['ProteinFamily'] = pf_id
-        return(uniprot_df)
-    else:
-        return('Something went wrong in Interpro searching ' +  uniprot_result.status_code)
+#     uniprot_result = requests.get(UNIPROT_URL)
+
+#     if uniprot_result.ok:
+#         content = uniprot_result.text
+#         content = io.StringIO(content)
+#         uniprot_df = pd.read_csv(content, sep="\t", index_col=0)
+#         uniprot_df['ProteinFamily'] = pf_id
+#         return(uniprot_df)
+#     else:
+#         return('Something went wrong in Interpro searching ' +  uniprot_result.status_code)
 
 def findMutualProtein(queryString, combined_df):
     if re.search('and', queryString):

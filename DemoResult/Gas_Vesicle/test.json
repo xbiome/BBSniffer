@@ -2,6 +2,7 @@
     "Query": "(PF00741) or (PF05121) or (PF01304)",
     "Input_genomes": "Input_genomes",
     "Email": "somebody@somecompany.com",
+    "Antismash_threads": 10,
     "alignment_threshold": 90,
     "alignment_len_threshold": 0.9,
     "Antismash_gap_len": 20,

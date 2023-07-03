@@ -4,6 +4,7 @@
     "Email": "somebody@somecompany.com",
     "alignment_threshold": 90,
     "alignment_len_threshold": 0.9,
+    "Antismash_threads": 10,
     "Antismash_gap_len": 20,
     "Antismash_extenson_len": 8
 }
