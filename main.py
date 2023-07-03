@@ -236,7 +236,7 @@ def downloadGenome(dataframe, work_dir):
 def downloadProtein(dataframe, work_dir):
     dataframe = dataframe.drop_duplicates()
     if os.path.exists(work_dir + '/All_proteins.fasta'):
-        os.system('rm'+ work_dir + '/All_proteins.fasta')
+        os.system('rm '+ work_dir + '/All_proteins.fasta')
     else:
         pass
     id_list = []
@@ -981,7 +981,7 @@ else:
 
 ## Start Uniprot querying
 print("\n")
-print('正在根据输入ID检索uniprot数据库')
+print('Start querying Uniprot!!!')
 print(datetime.datetime.now())
 print("\n")
 
@@ -999,15 +999,16 @@ combined_df.to_csv(work_dir + 'Query_result.xls', sep ='\t')
 merged_df = findMutualProtein(params['Query'], combined_df)
 merged_df = merged_df.drop_duplicates()
 merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
+merged_df = merged_df.set_index('Entry')
 
 print("\n")
-print('检索uniprot数据库完成')
+print('Querying Uniprot ends!!!')
 print(datetime.datetime.now())
 print("\n")
 
 ## 下载菌株基因组序列
 print("\n")
-print('菌株基因组下载开始')
+print('Start downloading strain genome!!!')
 print(datetime.datetime.now())
 print("\n")
 
@@ -1017,39 +1018,39 @@ organism_list = info_list[1]
 protein_family_info = info_list[2]
 
 print("\n")
-print('菌株基因组下载完成')
+print('Strain genome downloading ends!!!')
 print(datetime.datetime.now())
 print("\n")
 
 ## 下载蛋白质序列
 print("\n")
-print("开始下载物种/菌株过滤后的蛋白质")
+print("Start downloading protein!!!")
 print(datetime.datetime.now())
 print("\n")
 
 downloadProtein(merged_df, work_dir)
 
 print("\n")
-print("物种/菌株过滤后的蛋白质下载完成")
+print("Downloading protein ends!!!")
 print(datetime.datetime.now())
 print("\n")
 
 # 开始整理下载数据并生成统计文件All_Strains_for_Antismash.xls
 print("\n")
-print("开始整理下载数据并生成统计文件All_Strains_for_Antismash.xls")
+print("Start sorting downloded files!!!")
 print(datetime.datetime.now())
 print("\n")
 
 sortDownloadedData(work_dir)
 
 print("\n")
-print("整理下载数据并生成统计文件All_Strains_for_Antismash.xls结束")
+print("Sorting downloaded files ends!!!")
 print(datetime.datetime.now())
 print("\n")
 
 # 开始多序列比对以及构建HMMprofile
 print("\n")
-print("开始多序列比对以及构建HMMprofile")
+print("Start Multiple sequence alignment and HMMprofile construction!!!")
 print(datetime.datetime.now())
 print("\n")
 
@@ -1060,27 +1061,27 @@ Filtered_query = pd.read_csv(Filtered_query_file, sep = '\t', dtype=str)
 buildHMMprofile(Filtered_query, work_dir ,query_string)
 
 print("\n")
-print("多序列比对以及构建HMMprofile结束")
+print("Multiple sequence alignment and HMMprofile construction end!!!")
 print(datetime.datetime.now())
 print("\n")
 
 
 ## 开始运行antismash
 print("\n")
-print("开始运行antismash")
+print("Start Antismash!!!")
 print(datetime.datetime.now())
 print("\n")
 
 runAntismash(query_string, work_dir, Antismash_gap_len, Antismash_extenson_len, n_threads)
 
 print("\n")
-print("antismash运行完成")
+print("Antismash ends!!!")
 print(datetime.datetime.now())
 print("\n")
 
 ## 开始总结antismash结果
 print("\n")
-print("开始总结antismash结果")
+print("Start summarizing Antismash result!!!")
 print(datetime.datetime.now())
 print("\n")
 
@@ -1088,13 +1089,13 @@ Anitismash_Result_path = os.path.join(work_dir, 'Anitismash_Result')
 summaryAntismashResult(Anitismash_Result_path, work_dir)
 
 print("\n")
-print("antismash结果总结完成")
+print("Summarizing Antismash result ends!!!")
 print(datetime.datetime.now())
 print("\n")
 
 ## 开始统计菌株分类信息
 print("\n")
-print("开始统计菌株分类信息")
+print("Start strain classification!!!")
 print(datetime.datetime.now())
 print("\n")
 
@@ -1110,32 +1111,32 @@ else:
 StrainClassification(BGC_stat, db_file, work_dir)
 
 print("\n")
-print("统计菌株分类信息结束")
+print("Strain classification ends!!!")
 print(datetime.datetime.now())
 print("\n")
 
 ## 开始进化树构建
 print("\n")
-print("开始进化树构建")
+print("Start constructing phylogenetic tree!!!")
 print(datetime.datetime.now())
 print("\n")
 
 buildPhylogenetic_tree(work_dir,Input_genomes)
 
 print("\n")
-print("进化树构建结束")
+print("Constructing phylogenetic tree ends!!!")
 print(datetime.datetime.now())
 print("\n")
 
 ## 开始挑选候选菌株
 print("\n")
-print("开始挑选候选菌株")
+print("Start inferring candidate strains!!!")
 print(datetime.datetime.now())
 print("\n")
 
 Infer_candidate_strains(work_dir)
 
 print("\n")
-print("挑选候选菌株结束")
+print("Inferring candidate strains ends!!!")
 print(datetime.datetime.now())
 print("\n")
