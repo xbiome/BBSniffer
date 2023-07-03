@@ -93,10 +93,10 @@ def extract_query_info(query_string):
     return(id_list)
 
 def searchUniprot(pf_id):
-    BASE = 'http://www.uniprot.org'
-    KB_ENDPOINT = '/uniprot/'
+    BASE = 'http://rest.uniprot.org'
+    KB_ENDPOINT = '/uniprotkb/'
     QUERY_ID = pf_id
-    UNIPROT_URL = BASE + KB_ENDPOINT + '?query=' + QUERY_ID +  '&sort=score&columns=id,entry name,reviewed,protein names,genes,organism,organism-id,length,sequence&format=tab'
+    UNIPROT_URL = BASE + KB_ENDPOINT + 'search?query=' + QUERY_ID +  '&fields=accession,id,reviewed,protein_name,gene_names,organism_name,organism_id,length,sequence&format=tsv'
     uniprot_result = requests.get(UNIPROT_URL)
 
     if uniprot_result.ok:
@@ -111,17 +111,17 @@ def searchUniprot(pf_id):
 def findMutualProtein(queryString, combined_df):
     if re.search('and', queryString):
         queryString_list = re.split(' and ', queryString)
-        mutual_species_id = set(combined_df['Organism ID'].to_list())
+        mutual_species_id = set(combined_df['Organism (ID)'].to_list())
         for block in queryString_list:
             block = block.replace('(', '')
             block = block.replace(')', '')
             tmp_block_list = []
             for element in re.split(' OR ', block):
-                tmp_speciesID = combined_df[combined_df['ProteinFamily'] == element]['Organism ID'].to_list()
+                tmp_speciesID = combined_df[combined_df['ProteinFamily'] == element]['Organism (ID)'].to_list()
                 tmp_block_list.extend(tmp_speciesID)
             tmp_block_list = list(set(tmp_block_list))
             mutual_species_id = mutual_species_id.intersection(tmp_block_list)
-        filtered_df = combined_df[combined_df['Organism ID'].isin(list(mutual_species_id)) & ~combined_df['Organism'].isin(['uncultured bacterium','bioreactor metagenome'])]
+        filtered_df = combined_df[combined_df['Organism (ID)'].isin(list(mutual_species_id)) & ~combined_df['Organism'].isin(['uncultured bacterium','bioreactor metagenome'])]
     else:
         filtered_df = combined_df
     return(filtered_df)
@@ -140,7 +140,7 @@ def downloadGenome(dataframe, work_dir):
             protein_ID = dataframe.iloc[row,].name
             #protein_sequence = merged_df['Sequence'].iloc[row,]
             organism = dataframe['Organism'].iloc[row,]
-            organism_id = dataframe['Organism ID'].iloc[row,]
+            organism_id = dataframe['Organism (ID)'].iloc[row,]
             ## Get protein family information for each protein
             proteinfamily_type = dataframe['ProteinFamily'].iloc[row,]
 
@@ -152,10 +152,10 @@ def downloadGenome(dataframe, work_dir):
 
     # Retrieving genomes from the Entrez databases
     if os.path.exists(work_dir +'/Candidate_genomes/'): 
-        subprocess.run(["rm", "-rf", work_dir + "/Candidate_genomes/*"], shell=True)
-        subprocess.run(["mkdir", work_dir + "/Candidate_genomes/"], shell=True)
+        os.system("rm -rf " + work_dir + "/Candidate_genomes/*")
+        os.system("mkdir " + work_dir + "/Candidate_genomes/")
     else:
-        subprocess.run(["mkdir", work_dir + "/Candidate_genomes/"], shell=True)
+        os.system("mkdir" + work_dir + "/Candidate_genomes/")
 
     content = '\n'.join(list(set(species_id_list)))
     with open(os.path.join(work_dir ,'strains_ID.txt'), 'w+') as out:
@@ -163,14 +163,14 @@ def downloadGenome(dataframe, work_dir):
         
 
     ## 根据输入文件下载Refseq和genebank
+   # subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
+   #                 'bacteria' ,'--assembly-levels', 'complete,chromosome',
+   #                 '--flat-output','--parallel', '10','-r' , '10', '-o' ,
+   #                 work_dir + '/Candidate_genomes/', '-s', 'genbank', '-v',
+   #                 '-d'], stdout=subprocess.PIPE)
     subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
                     'bacteria' ,'--assembly-levels', 'complete,chromosome',
-                    '--flat-output','--parallel', '10','-r' , '10', '-o' ,
-                    work_dir + '/Candidate_genomes/', '-s', 'genbank', '-v',
-                    '-d'], stdout=subprocess.PIPE)
-    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
-                    'bacteria' ,'--assembly-levels', 'complete,chromosome',
-                    '-F' ,'fasta' ,'--flat-output','--parallel', '10', '-r' ,
+                    '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '10', '-r' ,
                     '10','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
 
     ## 解压基因组fasta文件
@@ -494,14 +494,14 @@ def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
         ID = re.split('_', file_name)[0:2]
         ID = '_'.join(ID)
         refseq_accession = 'GCF_'+str(ID)
-        os.makedirs(os.path.join(work_dir, 'Anitismash_Result', refseq_accession), exist_ok=True)
+        os.system("mkdir -p " + os.path.join(work_dir, 'Anitismash_Result', refseq_accession))
         ID_list.append(ID)
     
     input = zip(ID_list, candidate_gbk_file_list)
     command_list = []
     for ID, input_file in input:
         refseq_accession = 'GCF_'+str(ID)
-        command = ' '.join(['antismash', '--hmmdetection-strictness','strict' ,  '-c', '1', '--taxon', 'bacteria', input_file , '--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
+        command = ' '.join(['antismash', '--hmmdetection-strictness','strict' , '--genefinding-tool prodigal', '-c', '1', '--taxon', 'bacteria', input_file , '--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
         command_list.append(command)
     
     for i in range(0, len(command_list), n_threads):
