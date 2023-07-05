@@ -696,6 +696,7 @@ def StrainClassification(BGC_stat, db_file, work_dir):
     df['Type'] = nan
 
     for assemblyid in list(set(df['AssemblyID'].to_list())):
+	assemblyid_trans = assemblyid.replace('GCF_', 'GCA_')
         strain_name = df[df['AssemblyID'] == assemblyid]['organism'].to_list()[0]
         strain_name = re.sub('genome*assembly','',strain_name)
         strain_name = re.sub('complete*genome','',strain_name)
@@ -714,7 +715,7 @@ def StrainClassification(BGC_stat, db_file, work_dir):
 
         ## 根据assemblyID注释
         if assemblyid in db['assembly_accession'].to_list():
-            df[df['AssemblyID'] == assemblyid] = df[df['AssemblyID'] == assemblyid].assign(**{'Type':db[db['assembly_accession'] == assemblyid]['Type'].to_list()[0]})
+            df[df['AssemblyID'] == assemblyid] = df[df['AssemblyID'] == assemblyid].assign(**{'Type':db[db['assembly_accession'] == assemblyid_trans]['Type'].to_list()[0]})
         elif db[db['genome_name'].str.contains(strain_name, regex=True,case=False) == True].shape[0] > 0:
             ## 根据菌株名字注释
             type = db[db['genome_name'].str.contains(strain_name, regex=True,case=False) == True]['Type'].to_list()[0]
