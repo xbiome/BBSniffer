@@ -696,7 +696,7 @@ def StrainClassification(BGC_stat, db_file, work_dir):
     df['Type'] = nan
 
     for assemblyid in list(set(df['AssemblyID'].to_list())):
-	assemblyid_trans = assemblyid.replace('GCF_', 'GCA_')
+        assemblyid_trans = assemblyid.replace('GCF_', 'GCA_')
         strain_name = df[df['AssemblyID'] == assemblyid]['organism'].to_list()[0]
         strain_name = re.sub('genome*assembly','',strain_name)
         strain_name = re.sub('complete*genome','',strain_name)
