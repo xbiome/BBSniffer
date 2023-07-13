@@ -714,7 +714,7 @@ def StrainClassification(BGC_stat, db_file, work_dir):
         taxid = df[df['AssemblyID'] == assemblyid]['TaxonID'].to_list()[0]
 
         ## 根据assemblyID注释
-        if db['assembly_accession'].str.contains('assemblyid_trans', na=False).values.any():
+        if db['assembly_accession'].str.contains(assemblyid_trans, na=False).values.any():
             df[df['AssemblyID'] == assemblyid] = df[df['AssemblyID'] == assemblyid].assign(**{'Type':db[db['assembly_accession'].str.contains(assemblyid_trans, na=False)]['Type'].to_list()[0]})
         elif db[db['genome_name'].str.contains(strain_name, regex=True,case=False) == True].shape[0] > 0:
             ## 根据菌株名字注释
