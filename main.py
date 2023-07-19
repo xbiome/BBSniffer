@@ -530,7 +530,7 @@ def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
         ID = re.split('_', file_name)[0:2]
         ID = '_'.join(ID)
         refseq_accession = 'GCF_'+str(ID)
-	os.makedirs(os.path.join(work_dir, 'Anitismash_Result', refseq_accession), exist_ok = True)
+        os.makedirs(os.path.join(work_dir, 'Anitismash_Result', refseq_accession), exist_ok = True)
         ID_list.append(ID)
     
     input = zip(ID_list, candidate_gbk_file_list)
@@ -1001,6 +1001,7 @@ combined_df.to_csv(work_dir + 'Query_result.xls', sep ='\t')
 merged_df = findMutualProtein(params['Query'], combined_df)
 merged_df = merged_df.drop_duplicates()
 merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
+#merged_df = pd.read_csv(work_dir + 'Filtered_Query_result.xls', sep = '\t', index_col=0)
 
 print("\n")
 print('Querying Uniprot ends!!!')
