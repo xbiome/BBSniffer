@@ -187,11 +187,11 @@ def downloadGenome(dataframe, work_dir):
             next
 
     # Retrieving genomes from the Entrez databases
-    if os.path.exists(work_dir +'/Candidate_genomes/'): 
-        os.system("rm -rf " + work_dir + "/Candidate_genomes/*")
-	os.makedirs(work_dir + "/Candidate_genomes/", exist_ok = True)
-    else:
-	os.makedirs(work_dir + "/Candidate_genomes/", exist_ok = True)
+#    if os.path.exists(work_dir +'/Candidate_genomes/'): 
+#        os.system("rm -rf " + work_dir + "/Candidate_genomes/*")
+#	os.makedirs(work_dir + "/Candidate_genomes/", exist_ok = True)
+#    else:
+#	os.makedirs(work_dir + "/Candidate_genomes/", exist_ok = True)
 
     content = '\n'.join(list(set(species_id_list)))
     with open(os.path.join(work_dir ,'strains_ID.txt'), 'w+') as out:
@@ -204,10 +204,10 @@ def downloadGenome(dataframe, work_dir):
    #                 '--flat-output','--parallel', '10','-r' , '10', '-o' ,
    #                 work_dir + '/Candidate_genomes/', '-s', 'genbank', '-v',
    #                 '-d'], stdout=subprocess.PIPE)
-    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
-                    'bacteria' ,'--assembly-levels', 'complete,chromosome',
-                    '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '30', '-r' ,
-                    '50','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
+#    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
+#                    'bacteria' ,'--assembly-levels', 'complete,chromosome',
+#                    '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '30', '-r' ,
+#                    '50','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
 
     ## 解压基因组fasta文件
     for gz_file in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna.gz'):
@@ -986,22 +986,22 @@ print('Start querying Uniprot!!!')
 print(datetime.datetime.now())
 print("\n")
 
-uniprot_df_list = []
-for pf_id in id_list:
-   tmp_df = searchUniprot(pf_id)
-   if type(tmp_df) == str:
-       next
-   else:
-       uniprot_df_list.append(tmp_df)
+#uniprot_df_list = []
+#for pf_id in id_list:
+#   tmp_df = searchUniprot(pf_id)
+#   if type(tmp_df) == str:
+#       next
+#   else:
+#       uniprot_df_list.append(tmp_df)
 
-combined_df = pd.concat(uniprot_df_list)
-combined_df = combined_df.set_index('Entry', drop = True)
-combined_df = combined_df.drop_duplicates()
-combined_df.to_csv(work_dir + 'Query_result.xls', sep ='\t')
-merged_df = findMutualProtein(params['Query'], combined_df)
-merged_df = merged_df.drop_duplicates()
-merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
-#merged_df = pd.read_csv(work_dir + 'Filtered_Query_result.xls', sep = '\t', index_col=0)
+#combined_df = pd.concat(uniprot_df_list)
+#combined_df = combined_df.set_index('Entry', drop = True)
+#combined_df = combined_df.drop_duplicates()
+#combined_df.to_csv(work_dir + 'Query_result.xls', sep ='\t')
+#merged_df = findMutualProtein(params['Query'], combined_df)
+#merged_df = merged_df.drop_duplicates()
+#merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
+merged_df = pd.read_csv(work_dir + 'Filtered_Query_result.xls', sep = '\t', index_col=0)
 
 print("\n")
 print('Querying Uniprot ends!!!')
