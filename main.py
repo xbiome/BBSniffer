@@ -189,9 +189,9 @@ def downloadGenome(dataframe, work_dir):
     # Retrieving genomes from the Entrez databases
     if os.path.exists(work_dir +'/Candidate_genomes/'): 
         os.system("rm -rf " + work_dir + "/Candidate_genomes/*")
-        os.system("mkdir " + work_dir + "/Candidate_genomes/")
+	os.makedirs(work_dir + "/Candidate_genomes/", exist_ok = True)
     else:
-        os.system("mkdir" + work_dir + "/Candidate_genomes/")
+	os.makedirs(work_dir + "/Candidate_genomes/", exist_ok = True)
 
     content = '\n'.join(list(set(species_id_list)))
     with open(os.path.join(work_dir ,'strains_ID.txt'), 'w+') as out:
@@ -206,8 +206,8 @@ def downloadGenome(dataframe, work_dir):
    #                 '-d'], stdout=subprocess.PIPE)
     subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
                     'bacteria' ,'--assembly-levels', 'complete,chromosome',
-                    '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '10', '-r' ,
-                    '10','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
+                    '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '30', '-r' ,
+                    '50','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
 
     ## 解压基因组fasta文件
     for gz_file in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna.gz'):
@@ -530,7 +530,7 @@ def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
         ID = re.split('_', file_name)[0:2]
         ID = '_'.join(ID)
         refseq_accession = 'GCF_'+str(ID)
-        os.system("mkdir -p " + os.path.join(work_dir, 'Anitismash_Result', refseq_accession))
+	os.makedirs(os.path.join(work_dir, 'Anitismash_Result', refseq_accession), exist_ok = True)
         ID_list.append(ID)
     
     input = zip(ID_list, candidate_gbk_file_list)
