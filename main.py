@@ -39,13 +39,16 @@ import matplotlib.pyplot as plt
 import datetime
 from subprocess import Popen
 from subprocess import TimeoutExpired
+import concurrent.futures
 import requests
 from requests.adapters import HTTPAdapter, Retry
+import shutil
 
 ########### arguments ###########
 parser = argparse.ArgumentParser(description="BGCSniffer")
 parser.add_argument("-json", "--jsonfile", dest="jsonfile", help= "Please input the complete path of parameter file (JSON format)")
 parser.add_argument("-workdir", "--workdir", dest="workdir", help= "Please input your working directory")
+parser.add_argument("-database", "--database",dest="database",help="The directory of the genome database and GBF database")
 args = parser.parse_args()
 ########### arguments ###########
 
@@ -116,7 +119,7 @@ def searchUniprot(pf_id):
     BASE = 'http://rest.uniprot.org'
     KB_ENDPOINT = '/uniprotkb/'
     QUERY_ID = pf_id
-    UNIPROT_URL = BASE + KB_ENDPOINT + 'search?query=' + QUERY_ID +  '&fields=accession,id,reviewed,protein_name,gene_names,organism_name,organism_id,length,sequence&format=tsv&size=500'
+    UNIPROT_URL = BASE + KB_ENDPOINT + 'search?query=%28' + QUERY_ID +  '%20AND%20%28taxonomy_id%3A2%29%29&fields=accession,id,reviewed,protein_name,gene_names,organism_name,organism_id,length,sequence&format=tsv&size=500'
     
     progress = 0
     with open('query_res_tmp.tsv', 'w') as f:
@@ -133,8 +136,9 @@ def searchUniprot(pf_id):
     uniprot_df['ProteinFamily'] = pf_id
     return(uniprot_df)
 
-#     uniprot_result = requests.get(UNIPROT_URL)
 
+
+#     uniprot_result = requests.get(UNIPROT_URL)
 #     if uniprot_result.ok:
 #         content = uniprot_result.text
 #         content = io.StringIO(content)
@@ -162,7 +166,7 @@ def findMutualProtein(queryString, combined_df):
         filtered_df = combined_df
     return(filtered_df)
 
-def downloadGenome(dataframe, work_dir):
+def downloadGenome(dataframe, work_dir,refdatabase):
     species_id_list = []
     organism_list = []
     protein_family_info = {}
@@ -203,32 +207,56 @@ def downloadGenome(dataframe, work_dir):
    #                 '--flat-output','--parallel', '10','-r' , '10', '-o' ,
    #                 work_dir + '/Candidate_genomes/', '-s', 'genbank', '-v',
    #                 '-d'], stdout=subprocess.PIPE)
-    subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
-                    'bacteria' ,'--assembly-levels', 'complete,chromosome',
-                    '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '30', '-r' ,
-                    '50','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
+   # subprocess.run(['ncbi-genome-download', '--taxids' , os.path.join(work_dir,'strains_ID.txt'),
+   #                 'bacteria' ,'--assembly-levels', 'complete,chromosome',
+   #                 '-F' ,'fasta,genbank' ,'--flat-output','--parallel', '30', '-r' ,
+   #                 '50','-o' , work_dir + '/Candidate_genomes/', '-v', '-d'], stdout=subprocess.PIPE)
+    DatabaseFile = {}
+    with open(refdatabase,'r') as file:
+        for line in file:
+            (taxID,Genome,Gbff) = line.strip().split('\t')
+            if taxID in DatabaseFile.keys():
+                  DatabaseFile[taxID].append(Genome)
+                  DatabaseFile[taxID].append(Gbff)
+            else:
+                  DatabaseFile[taxID] = [Genome,Gbff]
+    CandidateDir = os.path.join(work_dir,'Candidate_genomes/')
+    for target in list(set(species_id_list)):
+            if target in DatabaseFile.keys():
+                print('--' + str(target))
+                for gzfile in DatabaseFile[target]:
+                    #shutil.copy(gzfile, CandidateDir)
+                    if 'fna.gz' in gzfile:
+                             ExtractPath = os.path.join(CandidateDir,os.path.basename(gzfile)[:-3])
+                             with gzip.open(gzfile, 'rb') as gz_file, open(ExtractPath, 'wb') as output_file:
+                                 time.sleep(2)
+                                 shutil.copyfileobj(gz_file, output_file)
+                    else:
+                             time.sleep(2)
+                             shutil.copy(gzfile, CandidateDir)
+
 
     ## 解压基因组fasta文件
-    for gz_file in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna.gz'):
-        unzip_status = subprocess.run(['gunzip','-f', gz_file], stdout=subprocess.PIPE)
-        if unzip_status.returncode:
-            print(gz_file + ' unzip failed!!')
-            subprocess.run(["rm", work_dir + "/Candidate_genomes/" + gz_file], shell=True)
-            next
-        else:
-            pass
+ #   for gz_file in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna.gz'):
+ #       unzip_status = subprocess.run(['gunzip','-f', gz_file], stdout=subprocess.PIPE)
+ #       if unzip_status.returncode:
+ #           print(gz_file + ' unzip failed!!')
+ #           subprocess.run(["rm", work_dir + "/Candidate_genomes/" + gz_file], shell=True)
+ #           next
+ #       else:
+ #           pass
 
     ## 检查是否每一个解压后的基因组都有Refseq和对应genebank文件
-    for refseq in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna'):
-        file_name = os.path.basename(refseq)
-        Refseq_ID = re.split('_',file_name)[0:2]
-        Refseq_ID = '_'.join(Refseq_ID)
-        pattern = work_dir + '/Candidate_genomes/' + Refseq_ID + '*gz'
-        file_list = glob.glob(pattern)
-        if len(file_list) == 1 :
-            pass
-        else:
-            subprocess.run(['rm', work_dir + '/Candidate_genomes/' + Refseq_ID + '*'])
+  #  for refseq in glob.glob(work_dir + '/Candidate_genomes/*genomic.fna'):
+  #      file_name = os.path.basename(refseq)
+  #      Refseq_ID = re.split('_',file_name)[0:2]
+  #      Refseq_ID = '_'.join(Refseq_ID)
+  #      pattern = work_dir + '/Candidate_genomes/' + Refseq_ID + '*gz'
+  #      file_list = glob.glob(pattern)
+  #      if len(file_list) == 1 :
+  #          pass
+  #      else:
+  #          subprocess.run(['rm', work_dir + '/Candidate_genomes/' + Refseq_ID + '*'])
 
     return [species_id_list, organism_list, protein_family_info]    
 
@@ -268,7 +296,7 @@ def downloadProtein(dataframe, work_dir):
 def sortDownloadedData(work_dir):
     ID_dict = {}
     datafolder = os.path.join(work_dir,'Candidate_genomes')
-    all_fna_files = glob.glob(os.path.join(datafolder, '*', '*fna'))
+    all_fna_files = glob.glob(os.path.join(datafolder, '*fna'))
     ID_list = []
     for fna_file in all_fna_files:
         refseq_file_name = os.path.basename(fna_file)
@@ -295,97 +323,134 @@ def sortDownloadedData(work_dir):
 
 
 def buildHMMprofile(filtered_query, work_dir, query_string):
-    ## 将所有蛋白整合到一起
-    complete_fasta = work_dir + '/All_proteins.fasta'
-
-    if ' and ' in query_string:
-        blocks = re.split(' and ', query_string)
-        n = 1
-        for block in blocks:
-            block = block.replace('(', '')
-            block = block.replace(')', '')
-            pf_list = re.split(' OR ', block)
-            tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
-            block_protein_list = tmp_filtered_result['Entry'].to_list()
-
-            ## 从下载的蛋白序列中抓取block中包含的蛋白序列
-
-            tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
-            n = n +1
-
-            content_list = []
-            for record in SeqIO.parse(complete_fasta, "fasta"):
-                id = str(record.id)
-                if id in block_protein_list:   
-                    content = '>' + id + '\n' + str(record.seq)
-                    content_list.append(content)
-                    with open(tmp_block_fasta_file_name, 'w+') as out:
-                        out.write('\n'.join(content_list))
-                    out.close()
-                else:
-                    next
-            
-
-    elif ' or ' in query_string:
-        blocks = re.split(' or ', query_string)
-        n = 1
-        for block in blocks:
-            block = block.replace('(', '')
-            block = block.replace(')', '')
-            pf_list = re.split(' OR ', block)
-            tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
-            block_protein_list = tmp_filtered_result['Entry'].to_list()
-            print(pf_list)
-            print(tmp_filtered_result)
-            print(block_protein_list)
-            ## 从下载的蛋白序列中抓取block中包含的蛋白序列
-
-            tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
-            n = n +1
-            content_list = []
-            for record in SeqIO.parse(complete_fasta, "fasta"):
-                id = str(record.id)
-                if id in block_protein_list:   
-                    content = '>' + id + '\n' + str(record.seq)
-                    content_list.append(content)
-                    with open(tmp_block_fasta_file_name, 'w+') as out:
-                        out.write('\n'.join(content_list))
-                    out.close()
-                else:
-                    next
-            
+    if 'and' in query_string or 'or' in query_string:
+        blocks  = re.split(r"\s+(and|or)\s+", query_string)
+        blocks  = [item for item in blocks if item not in ['and', 'or']]
     else:
-        n = 1
-        query_string = query_string.replace('(', '')
-        query_string = query_string.replace(')', '')
-        pf_list = re.split(' OR ', query_string)
+        blocks = [query_string]
+    n=1
+    for block in blocks:
+        block = block.replace("(", "").replace(")", "")
+        pf_list = re.split(' OR ', block)
         tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
-        block_protein_list = tmp_filtered_result['Entry'].to_list()
-
-        ## 从下载的蛋白序列中抓取block中包含的蛋白序列
-
         tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
-            
-        content_list = []
-        for record in SeqIO.parse(complete_fasta, "fasta"):
-            id = str(record.id)
-            if id in block_protein_list:   
-                content = '>' + id + '\n' + str(record.seq)
-                content_list.append(content)
-                with open(tmp_block_fasta_file_name, 'w+') as out:
-                    out.write('\n'.join(content_list))
-                out.close()
-            else:
-                next
+        with open(tmp_block_fasta_file_name, 'w') as fasta_file:
+            for index, row in tmp_filtered_result.iterrows():
+                entry = row['Entry']
+                sequence = row['Sequence']
+                fasta_file.write(f'>{entry}\n')
+                fasta_file.write(f'{sequence}\n')
+        n+=1
+
+## 将所有蛋白整合到一起
+#    complete_fasta = work_dir + '/All_proteins.fasta'
+#
+#    if ' and ' in query_string:
+#        blocks = re.split(' and ', query_string)
+#        n = 1
+#        for block in blocks:
+#            block = block.replace('(', '')
+#            block = block.replace(')', '')
+#            pf_list = re.split(' OR ', block)
+#            tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
+#            block_protein_list = tmp_filtered_result['Entry'].to_list()
+#
+#            ## 从下载的蛋白序列中抓取block中包含的蛋白序列
+#
+#            tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
+#            n = n +1
+#
+#            content_list = []
+#            for record in SeqIO.parse(complete_fasta, "fasta"):
+#                id = str(record.id)
+#                if id in block_protein_list:   
+#                    content = '>' + id + '\n' + str(record.seq)
+#                    content_list.append(content)
+#                    with open(tmp_block_fasta_file_name, 'w+') as out:
+#                        out.write('\n'.join(content_list))
+#                    out.close()
+#                else:
+#                    next
+#            
+#
+#    elif ' or ' in query_string:
+#        blocks = re.split(' or ', query_string)
+#        n = 1
+#        for block in blocks:
+#            block = block.replace('(', '')
+#            block = block.replace(')', '')
+#            pf_list = re.split(' OR ', block)
+#            tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
+#            block_protein_list = tmp_filtered_result['Entry'].to_list()
+#            print(pf_list)
+#            print(tmp_filtered_result)
+#            print(block_protein_list)
+#            ## 从下载的蛋白序列中抓取block中包含的蛋白序列
+#
+#            tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
+#            n = n +1
+#            content_list = []
+#            for record in SeqIO.parse(complete_fasta, "fasta"):
+#                id = str(record.id)
+#                if id in block_protein_list:   
+#                    content = '>' + id + '\n' + str(record.seq)
+#                    content_list.append(content)
+#                    with open(tmp_block_fasta_file_name, 'w+') as out:
+#                        out.write('\n'.join(content_list))
+#                    out.close()
+#                else:
+#                    next
+#            
+#    else:
+#        n = 1
+#        query_string = query_string.replace('(', '')
+#        query_string = query_string.replace(')', '')
+#        pf_list = re.split(' OR ', query_string)
+#        tmp_filtered_result = filtered_query[filtered_query['ProteinFamily'].isin(pf_list)]
+#        block_protein_list = tmp_filtered_result['Entry'].to_list()
+#
+#        ## 从下载的蛋白序列中抓取block中包含的蛋白序列
+#
+#        tmp_block_fasta_file_name = work_dir + 'ProteinFamily' + str(n) + '.fasta'
+#            
+#        content_list = []
+#        for record in SeqIO.parse(complete_fasta, "fasta"):
+#            id = str(record.id)
+#            if id in block_protein_list:   
+#                content = '>' + id + '\n' + str(record.seq)
+#                content_list.append(content)
+#                with open(tmp_block_fasta_file_name, 'w+') as out:
+#                    out.write('\n'.join(content_list))
+#                out.close()
+#            else:
+#                next
+    ## Reabundance
 
     ## Multiple Seq Alignment and Build HMM profile
     for block_fasta in glob.glob(work_dir + 'ProteinFamily*.fasta'):
         basename = os.path.basename(block_fasta)
         dirname = os.path.dirname(block_fasta)
         basename = re.split('.fasta',basename)[0]
-        subprocess.run(['clustalo', '-i', block_fasta, '-o', os.path.join(work_dir, basename + '.st'), '--threads','20'])
+        subprocess.run(['cd-hit','-i',block_fasta,'-o',block_fasta + '.reabun','-T','100','-M','20000','-n','3'])
+        subprocess.run(['FAMSA/famsa', block_fasta + '.reabun', os.path.join(work_dir, basename + '.st'),'-t','200'])
         os.system('hmmbuild  --amino ' + os.path.join(dirname, basename + '.hmm ') + ' ' + work_dir + basename + '.st')
         
+def execute_command(command):
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+    return command, result.stdout, result.stderr
+
+def run_commands(commands_list, max_workers):
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(execute_command, command): command for command in commands_list}
+        for future in concurrent.futures.as_completed(futures):
+            command = futures[future]
+            try:
+                command, stdout, stderr = future.result()
+                results.append((command, stdout, stderr))
+            except Exception as e:
+                print(f"Error executing command: {command}, {e}")
+    return results
 def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
     ## Prepare input files
     block_hmm_list = []
@@ -536,9 +601,22 @@ def runAntismash(query_string, work_dir, space_len,neighbour, n_threads):
     command_list = []
     for ID, input_file in input:
         refseq_accession = 'GCF_'+str(ID)
-        command = ' '.join(['antismash', '--hmmdetection-strictness','strict' , '--genefinding-tool prodigal', '-c', '1', '--taxon', 'bacteria', input_file , '--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
+        command = ' '.join(['antismash', '--hmmdetection-strictness','strict' , '--genefinding-tool prodigal', '-c', '10', '--taxon', 'bacteria', input_file , '--output-dir', os.path.join(work_dir, 'Anitismash_Result', refseq_accession)])
+        with open (os.path.join(work_dir, 'antismash.sh' ), 'a') as file:
+                     file.write(command + '\n')
         command_list.append(command)
     
+    max_parallel_tasks = 40  # 设置最大并行任务数
+
+    results = run_commands(command_list, max_parallel_tasks)
+    with open(os.path.join(work_dir,'Antismash.log'),'a') as file:
+          for command, stdout, stderr in results:
+                   file.write(f"Command: {command}\n")
+                   file.write(f"Standard Output:\n{stdout}\n")
+                   file.write(f"Standard Error:\n{stderr}\n")
+                   file.write("=" * 30)
+
+
     for i in range(0, len(command_list), n_threads):
         tmp_command_list = command_list[i:i+n_threads]
         procs = [ Popen(i,  shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE) for i in tmp_command_list]
@@ -558,7 +636,10 @@ def summaryAntismashResult(Result_folder, work_dir):
     strainID2ncID = {}
     assemblyID2ncID = {}
     assemblyIDnumer = {}
+    n=0
     for root, subdir, files in os.walk(Result_folder):
+        n+=1
+        print(str(n) + '\r', end='', flush=True) 
         for file in files:
             if re.search('region', file):
                 if file.endswith('gbk'):
@@ -860,7 +941,7 @@ def buildPhylogenetic_tree(work_dir, input_genomes_folder_name):
                 next
 
     ## Create strain tree file
-    subprocess.run(['JolyTree.sh', '-i', os.path.join(work_dir,'StrainPhylogeneticTree/Input/'), '-b', os.path.join(work_dir,'StrainPhylogeneticTree/','Strain_tree'), '-t', '20'])
+    subprocess.run(['JolyTree.sh', '-i', os.path.join(work_dir,'StrainPhylogeneticTree/Input/'),'-b', os.path.join(work_dir,'StrainPhylogeneticTree/','Strain_tree'), '-t', '200'])
 
 def Infer_candidate_strains(work_dir):
     annotated_df = pd.read_table(os.path.join(work_dir,'Strain_classification.xls'), sep = '\t',dtype=str)
@@ -953,6 +1034,22 @@ def Infer_candidate_strains(work_dir):
     with open(os.path.join(work_dir,'候选菌株信息.txt'), 'w') as out:
         out.write(content)
 
+def search(path,out,tax):
+     import os
+     search_directory = path
+     file_dict = {}
+     FileTaxonomy = {}
+     for root, dirs, files in os.walk(search_directory):
+         for file_name in files:
+             file_path = os.path.join(root, file_name)
+             file_dict[file_name] = file_path
+     with open(tax,'r') as readfile:
+         with open(out,'w') as writefile:
+             for line in readfile:
+                 (TaxonomyID,FNA,GBF) = line.strip().split('\t')
+                 if FNA in file_dict.keys() and GBF in file_dict.keys():
+                         writefile.write(f'{TaxonomyID}\t{file_dict[FNA]}\t{file_dict[GBF]}\n')
+
 ########### functions ###########
 
 ########### Main Run ###########
@@ -971,6 +1068,16 @@ Email = params['Email']
 Entrez.email = Email
 query_string = params['Query']
 id_list = extract_query_info(query_string)
+
+## Check Taxonomy File
+
+taxfile = subprocess.run(['find', '/opt/', '-name', 'Tax_fna_GBF.tsv'], stdout=subprocess.PIPE)
+
+if not taxfile.returncode:
+    taxfile = taxfile.stdout.decode('utf-8')
+    taxfile = taxfile.replace('\n', '')
+else:
+    print("Can't find taxonomy file, please check")
 
 ## Create working dir
 
@@ -1000,8 +1107,13 @@ combined_df.to_csv(work_dir + 'Query_result.xls', sep ='\t')
 merged_df = findMutualProtein(params['Query'], combined_df)
 merged_df = merged_df.drop_duplicates()
 merged_df.to_csv(work_dir + 'Filtered_Query_result.xls', sep='\t')
-#merged_df = pd.read_csv(work_dir + 'Filtered_Query_result.xls', sep = '\t', index_col=0)
+merged_df = pd.read_csv(work_dir + 'Filtered_Query_result.xls', sep = '\t', index_col=0)
 
+databaseOutput = os.path.join(os.path.dirname(taxfile),'GenomeGBFDatabase.tsv')
+
+search(args.database,databaseOutput,taxfile)
+
+print(f'database--{databaseOutput}\n')
 print("\n")
 print('Querying Uniprot ends!!!')
 print(datetime.datetime.now())
@@ -1013,7 +1125,7 @@ print('Start downloading strain genome!!!')
 print(datetime.datetime.now())
 print("\n")
 
-info_list = downloadGenome(merged_df, work_dir)
+info_list = downloadGenome(merged_df, work_dir,databaseOutput)
 species_id_list = info_list[0]
 organism_list = info_list[1]
 protein_family_info = info_list[2]
@@ -1029,7 +1141,7 @@ print("Start downloading protein!!!")
 print(datetime.datetime.now())
 print("\n")
 
-downloadProtein(merged_df, work_dir)
+#downloadProtein(merged_df, work_dir)
 
 print("\n")
 print("Downloading protein ends!!!")
@@ -1055,8 +1167,8 @@ print("Start Multiple sequence alignment and HMMprofile construction!!!")
 print(datetime.datetime.now())
 print("\n")
 
-# All_Strains_for_Antismash_file  = work_dir + "/All_Strains_for_Antismash.xls"
-# All_Strains_for_Antismash = pd.read_csv(All_Strains_for_Antismash_file, sep = '\t', dtype=str)
+All_Strains_for_Antismash_file  = work_dir + "/All_Strains_for_Antismash.xls"
+All_Strains_for_Antismash = pd.read_csv(All_Strains_for_Antismash_file, sep = '\t', dtype=str)
 Filtered_query_file = work_dir + "/Filtered_Query_result.xls"
 Filtered_query = pd.read_csv(Filtered_query_file, sep = '\t', dtype=str)
 buildHMMprofile(Filtered_query, work_dir ,query_string)
@@ -1103,6 +1215,7 @@ print("\n")
 BGC_stat = pd.read_csv(os.path.join(work_dir, 'BGC_stat.xls'), header= 0, sep = "\t", dtype=str)
 
 db_file = subprocess.run(['find', '/opt/', '-name', 'Database.xls'], stdout=subprocess.PIPE)
+
 if not db_file.returncode:
     db_file = db_file.stdout.decode('utf-8')
     db_file = db_file.replace('\n', '')
