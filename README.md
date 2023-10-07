@@ -1,7 +1,7 @@
 # BBSniffer
 
 ## 1 Data Download and Extraction
-Use the following DOI links to download the data files from Zenodo(https://zenodo.org/),and untar the downloaded data files to a directory
+Use the following DOI links to download the data files from Zenodo (https://zenodo.org/), and untar the downloaded data files to a directory
 
    - 10.5281/zenodo.8286952
    - 10.5281/zenodo.8313016
