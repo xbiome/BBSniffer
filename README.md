@@ -1,7 +1,7 @@
 # BBSniffer
 
 BBSniffer is a software designed to identify suitable chassis strains from a comprehensive strain library, which encompasses pathogens, industrial microorganisms, and various non-pathogenic species, using specified biopolymer terms. It accomplishes this by analyzing biopolymer rules, HMM profiles, and genomic sequences derived from the user's input.
-![Description](https://github.com/xbiome/BBSniffer/blob/publish/Description.jpeg)
+![Description](https://github.com/xbiome/BBSniffer/blob/develop/Description.jpeg)
 
 
 ## 1 Data Download and Extraction
