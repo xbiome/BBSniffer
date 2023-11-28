@@ -95,3 +95,7 @@ Open Ubuntu from your software list, login and Run pipeline following the instru
 - 2004 or higher version are required for ARM system.
 - WSL 2 is not supported on system lower than 18362.
 - Avaiable space of system hard drive should be no less than 200G.
+
+## 5. Citation
+Huang, Y., Wu, Y., Hu, H. et al. Accelerating the design of pili-enabled living materials using an integrative technological workflow. Nat Chem Biol (2023). https://doi.org/10.1038/s41589-023-01489-x
+
